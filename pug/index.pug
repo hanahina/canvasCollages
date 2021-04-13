@@ -1,3 +1,5 @@
+- var mediaPath = 'https://raw.githubusercontent.com/hanahina/mediaForCodepen/master/canvasCollages/';
+
 doctype html
 html(lang="zh-Hant-TW")
     head
@@ -11,7 +13,20 @@ html(lang="zh-Hant-TW")
             nav.tab-nav
                 a.item(href="##") 畫板
                 a.item(href="##") 元件庫
-            canvas.canvas-wrapper#canvasWrap
+            .tab-group
+                .tab-content
+                    canvas.canvas-wrapper#canvasWrap(width="12000" height="6300")
+                .tab-content
+                    ul.element-group
+                        - for(var i = 0; i < 10; i++)
+                            if (i + 1 < 10)
+                                - var imgName = '0' + (i + 1);
+                            else
+                                - var imgName = (i + 1);
+                            li.item
+                                a.link(href=mediaPath + "original/" + imgName + ".png")
+                                    img(src=mediaPath + "thumbnail/" + imgName + ".png", alt="")
         footer.footer
-        script(type="text/javascript", src="./script/script.js")
+        script(type="text/javascript", src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.0/jquery.min.js")
+        script(type="text/javascript", src="./script/script.prod.js")
 

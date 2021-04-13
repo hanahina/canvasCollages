@@ -6,3 +6,46 @@ body
     font-family 'Lato','Noto Sans TC','Helvetica','Arial','微軟正黑體',sans-serif;
     font-size 16px
     line-height 1.25
+.wrapper
+    margin-left auto
+    margin-right @margin-left
+    max-width 1200px
+    padding-left 10px
+    padding-right @padding-left
+    width 100%
+.tab-group
+    display flex
+    justify-content space-between
+    .tab-content
+        border 5px outset #ddd
+        flex 0 0 $fb = 49%
+        max-width $fb
+        width $fb
+.canvas-wrapper
+    background #fff
+    display block
+    height auto
+    width 100%
+.element-group
+    display block
+    font-size 0
+    padding 10px
+    text-align center
+    a
+    img
+        display block
+        width 100%
+    .item
+        border 2px solid #ddd
+        border-radius 5px
+        display inline-block
+        margin 5px
+        overflow hidden
+    .link
+        background #fff
+        padding 10px
+        &:hover
+            background-color #eee
+        img
+            width 50px
+
