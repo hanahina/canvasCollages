@@ -15,53 +15,157 @@
     const itemButton = document.querySelectorAll('.element-group .link')
 
     itemButton.forEach(function(item) {
-        // console.log(item);
 
         item.addEventListener('click', function(e) {
             e.preventDefault()
-            // console.log(item.getAttribute('href'));
 
             const itemImg = new Image()
             itemImg.src = item.getAttribute('href')
             itemImg.onload = function(){
-                ctx.drawImage(itemImg, 0, 0, itemImg.width, itemImg.height)
                 itemsID += 1
+                ctx.drawImage(itemImg, itemsID * 100, itemsID * 100, itemImg.width, itemImg.height)
+
                 imgItems.push({
                     id: itemsID,
-                    height: itemImg.height,
-                    width: itemImg.width,
-                    originX: 0,
-                    originY: 0,
+                    eleHeight: itemImg.height,
+                    eleWidth: itemImg.width,
+                    originX: itemsID * 100,
+                    originY: itemsID * 100,
                     target: itemImg,
-
+                    focusOn: false,
+                    hoverOn: false,
+                    checkOn: false,
                 })
-
             }
             console.log(imgItems);
 
         })
     })
 
+
+    function getNaturalSize(nowNumber, ratio) {
+        return Math.round(nowNumber / ratio * 100) / 100
+    }
+
+    let lastX, lastY
+    canvas.addEventListener('mouseenter', function(e) {
+        lastX = null
+        lastY = null
+    })
+
     canvas.addEventListener('mousemove', function(e) {
         e.preventDefault()
 
-        const naturalX = Math.round(e.offsetX / canvasInfo.ratioX * 100) / 100
-        const naturalY = Math.round(e.offsetY / canvasInfo.ratioY * 100) / 100
+        const naturalX = getNaturalSize(e.offsetX, canvasInfo.ratioX)
+        const naturalY = getNaturalSize(e.offsetY, canvasInfo.ratioY)
+        const offsetX = (lastX !== null)? naturalX - lastX: 0;
+        const offsetY = (lastY !== null)? naturalY - lastY: 0;
 
-        // console.log(naturalX, naturalY);
+        lastX = naturalX
+        lastY = naturalY
+
+        // hoverOn check
+        for (let i = 0; i < imgItems.length; i++) {
+            const ele = imgItems[i]
+            const {eleHeight, eleWidth, originX, originY,} = ele
+
+            if(originX < naturalX && naturalX < originX + eleWidth && originY < naturalY && naturalY < originY + eleHeight) {
+                ele.hoverOn = true
+                for (let j = 0; j < i; j++) {
+                    imgItems[j].hoverOn = false
+                }
+            } else {
+                ele.hoverOn = false
+            }
+        }
+
+        ctx.clearRect(0, 0, canvasInfo.width, canvasInfo.height)
+
+        imgItems.forEach(function(item) {
+            const nowX = item.originX
+            const nowY = item.originY
+
+            ctx.drawImage(item.target, nowX, nowY, item.eleWidth, item.eleHeight)
+
+            if(item.hoverOn) {
+                ctx.lineWidth = 20;
+                ctx.strokeStyle = 'orange';
+                ctx.strokeRect(nowX, nowY, item.eleWidth, item.eleHeight)
+            }
+
+            item.originX = nowX
+            item.originY = nowY
+        })
+
+
+        // // 圖片依滑鼠移動
+        // ctx.clearRect(0, 0, canvasInfo.width, canvasInfo.height)
+        // imgItems.forEach(function(item) {
+        //     const nowX = item.originX + offsetX
+        //     const nowY = item.originY + offsetY
+
+        //     ctx.drawImage(item.target, nowX, nowY, item.eleWidth, item.eleHeight)
+        //     item.originX = nowX
+        //     item.originY = nowY
+        // })
+
+    })
+
+    canvas.addEventListener('mousedown', function(e){
+        e.preventDefault()
+
+        const naturalX = getNaturalSize(e.offsetX, canvasInfo.ratioX)
+        const naturalY = getNaturalSize(e.offsetY, canvasInfo.ratioY)
+
+        // mouseDown check
+        for (let i = 0; i < imgItems.length; i++) {
+            const ele = imgItems[i]
+            const {eleHeight, eleWidth, originX, originY,} = ele
+
+            if(originX < naturalX && naturalX < originX + eleWidth && originY < naturalY && naturalY < originY + eleHeight) {
+                ele.checkOn = true
+                for (let j = 0; j < i; j++) {
+                    imgItems[j].checkOn = false
+                }
+            } else {
+                ele.checkOn = false
+            }
+            console.log(ele.id, ele.checkOn);
+        }
         ctx.clearRect(0, 0, canvasInfo.width, canvasInfo.height)
 
 
-        imgItems.forEach(function(item) {
-            const nowX = item.originX + naturalX
-            const nowY = item.originY + naturalY
 
-            ctx.drawImage(item.target, nowX, nowY, item.width, item.height)
+        imgItems.forEach(function(item) {
+            const nowX = item.originX
+            const nowY = item.originY
+
+            ctx.drawImage(item.target, nowX, nowY, item.eleWidth, item.eleHeight)
+
+            if(item.checkOn) {
+                ctx.lineWidth = 40;
+                ctx.strokeStyle = 'red';
+                ctx.strokeRect(nowX, nowY, item.eleWidth, item.eleHeight)
+            }
+
             item.originX = nowX
             item.originY = nowY
+        })
+    })
 
-            console.log(item);
+    canvas.addEventListener('mouseup', function(e){
+        e.preventDefault()
 
+        ctx.clearRect(0, 0, canvasInfo.width, canvasInfo.height)
+        imgItems.forEach(function(item) {
+            item.checkOn = false
+            const nowX = item.originX
+            const nowY = item.originY
+
+            ctx.drawImage(item.target, nowX, nowY, item.eleWidth, item.eleHeight)
+
+            item.originX = nowX
+            item.originY = nowY
         })
     })
 

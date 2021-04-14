@@ -15,7 +15,7 @@ html(lang="zh-Hant-TW")
                 a.item(href="##") 元件庫
             .tab-group
                 .tab-content
-                    canvas.canvas-wrapper#canvasWrap(width="12000" height="6300")
+                    canvas.canvas-wrapper#canvasWrap(width="2400" height="2400")
                 .tab-content
                     ul.element-group
                         - for(var i = 0; i < 10; i++)
@@ -28,5 +28,5 @@ html(lang="zh-Hant-TW")
                                     img(src=mediaPath + "thumbnail/" + imgName + ".png", alt="")
         footer.footer
         script(type="text/javascript", src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.0/jquery.min.js")
-        script(type="text/javascript", src="./script/script.prod.js")
+        script(type="text/javascript", src="./script/script.dev.js")
 
