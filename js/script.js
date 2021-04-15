@@ -69,6 +69,10 @@
         drawItems(imgItems)
     }
 
+    window.addEventListener('resize', function(e) {
+        console.log('window resize');
+    })
+
     itemButton.forEach(function(item) {
         item.addEventListener('click', function(e) {
             e.preventDefault()
@@ -318,8 +322,25 @@
         let targetIndex, targetObj
         imgItems.forEach(function(item) {
             if(item.focusOn) {
-                item.eleHeight += item.originHeight / 10
-                item.eleWidth += item.originWidth / 10
+                const zoomInHeight = item.eleHeight + item.originHeight / 10
+                const zoomInWidth = item.eleWidth + item.originWidth / 10
+                item.eleHeight = zoomInHeight
+                item.eleWidth = zoomInWidth
+            }
+        })
+        drawItems(imgItems)
+    })
+
+    // 縮小
+    document.getElementById('zoomOut').addEventListener('click', function(e) {
+        e.preventDefault()
+        let targetIndex, targetObj
+        imgItems.forEach(function(item) {
+            if(item.focusOn) {
+                const zoomOutHeight = item.eleHeight - item.originHeight / 10
+                const zoomOutWidth = item.eleWidth - item.originWidth / 10
+                item.eleHeight = (zoomOutHeight > 0)? zoomOutHeight: 0
+                item.eleWidth = (zoomOutWidth > 0)? zoomOutWidth: 0
             }
         })
         drawItems(imgItems)
