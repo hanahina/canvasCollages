@@ -15,6 +15,7 @@
         ratioX: canvas.clientWidth / canvas.width,
         ratioY: canvas.clientHeight / canvas.height,
     }
+    const itemOffset = 10
     const imgItems = []
     const itemButton = document.querySelectorAll('.element-group .link')
 
@@ -77,14 +78,16 @@
             itemImg.src = item.getAttribute('href')
             itemImg.onload = function(){
                 itemsID += 1
-                ctx.drawImage(itemImg, itemsID * 10, itemsID * 10, itemImg.width, itemImg.height)
+                ctx.drawImage(itemImg, itemsID * itemOffset, itemsID * itemOffset, itemImg.width, itemImg.height)
 
                 imgItems.push({
                     id: itemsID,
                     eleHeight: itemImg.height,
                     eleWidth: itemImg.width,
-                    originX: itemsID * 10,
-                    originY: itemsID * 10,
+                    originX: itemsID * itemOffset,
+                    originY: itemsID * itemOffset,
+                    originHeight: itemImg.height,
+                    originWidth: itemImg.width,
                     target: itemImg,
                     focusOn: false,
                     hoverOn: false,
@@ -199,11 +202,20 @@
         drawItems(imgItems)
     })
 
+
+
+
+
+    // =================== start ===================
+    //  按鈕功能組
+    // ===================  end  ===================
+    // 清除物件選取
     document.getElementById('clearFocus').addEventListener('click', function(e) {
         e.preventDefault()
         clearFocus()
     })
 
+    // 圖片下載
     document.getElementById('imgDownload').addEventListener('click', function(e) {
         clearFocus()
         const downloadImg = canvas.toDataURL('image/jpeg', .75)
@@ -211,8 +223,105 @@
         this.href = downloadImg
     })
 
+    // 清理畫板
     document.getElementById('clearBoard').addEventListener('click', function(e) {
+        e.preventDefault()
         imgItems.length = 0
+        drawItems(imgItems)
+    })
+
+    // 刪除選取元件
+    document.getElementById('deleteItem').addEventListener('click', function(e) {
+        e.preventDefault()
+        imgItems.forEach(function(item) {
+            if(item.focusOn) {
+                const targetIndex = imgItems.indexOf(item)
+                imgItems.splice(targetIndex, 1)
+            }
+        })
+        drawItems(imgItems)
+    })
+
+    // 往前一層
+    document.getElementById('goForwardLayer').addEventListener('click', function(e) {
+        e.preventDefault()
+        let targetIndex, targetObj
+        imgItems.forEach(function(item) {
+            if(item.focusOn) {
+                // 尋找目標物件
+                targetIndex = imgItems.indexOf(item)
+                // 取下目標物件
+                targetObj = imgItems.splice(targetIndex, 1)
+            }
+        })
+        // 往後推一格插回原陣列(陣列越後，圖層越上方)
+        const insertIndex = (targetIndex + 1 < imgItems.length)? targetIndex + 1: imgItems.length
+        imgItems.splice(insertIndex, 0, ...targetObj)
+        drawItems(imgItems)
+    })
+
+    // 往後一層
+    document.getElementById('goBackwardLayer').addEventListener('click', function(e) {
+        e.preventDefault()
+        let targetIndex, targetObj
+        imgItems.forEach(function(item) {
+            if(item.focusOn) {
+                // 尋找目標物件
+                targetIndex = imgItems.indexOf(item)
+                // 取下目標物件
+                targetObj = imgItems.splice(targetIndex, 1)
+            }
+        })
+        // 往前推一格插回原陣列(陣列越前，圖層越下方)
+        const insertIndex = (targetIndex - 1 > 0)? targetIndex - 1: 0
+        imgItems.splice(insertIndex, 0, ...targetObj)
+        drawItems(imgItems)
+    })
+
+    // 移至最前
+    document.getElementById('goFrontLayer').addEventListener('click', function(e) {
+        e.preventDefault()
+        let targetIndex, targetObj
+        imgItems.forEach(function(item) {
+            if(item.focusOn) {
+                // 尋找目標物件
+                targetIndex = imgItems.indexOf(item)
+                // 取下目標物件
+                targetObj = imgItems.splice(targetIndex, 1)
+            }
+        })
+        // 插回原陣列最後面
+        imgItems.push(...targetObj)
+        drawItems(imgItems)
+    })
+
+    // 移至最後
+    document.getElementById('goBackLayer').addEventListener('click', function(e) {
+        e.preventDefault()
+        let targetIndex, targetObj
+        imgItems.forEach(function(item) {
+            if(item.focusOn) {
+                // 尋找目標物件
+                targetIndex = imgItems.indexOf(item)
+                // 取下目標物件
+                targetObj = imgItems.splice(targetIndex, 1)
+            }
+        })
+        // 插回原陣列最前面
+        imgItems.unshift(...targetObj)
+        drawItems(imgItems)
+    })
+
+    // 放大
+    document.getElementById('zoomIn').addEventListener('click', function(e) {
+        e.preventDefault()
+        let targetIndex, targetObj
+        imgItems.forEach(function(item) {
+            if(item.focusOn) {
+                item.eleHeight += item.originHeight / 10
+                item.eleWidth += item.originWidth / 10
+            }
+        })
         drawItems(imgItems)
     })
 })(window ,document)
