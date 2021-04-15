@@ -1,10 +1,13 @@
 @charset 'utf-8'
 @import 'vendor/reset'
+
+$font-size = 16px
 body
     background #f7f7f7
     color #333
     font-family 'Lato','Noto Sans TC','Helvetica','Arial','微軟正黑體',sans-serif;
-    font-size 16px
+    font-size $font-size
+    letter-spacing: .05em
     line-height 1.25
 .wrapper
     margin-left auto
@@ -17,10 +20,11 @@ body
     display flex
     justify-content space-between
     .tab-content
-        border 5px outset #ddd
         flex 0 0 $fb = 49%
         max-width $fb
         width $fb
+.picture-frame
+    border 5px outset #ddd
 .canvas-wrapper
     background #fff
     display block
@@ -29,8 +33,7 @@ body
 .element-group
     display block
     font-size 0
-    padding 10px
-    text-align center
+    margin 0 -5px
     a
     img
         display block
@@ -39,7 +42,7 @@ body
         border 2px solid #ddd
         border-radius 5px
         display inline-block
-        margin 5px
+        margin 0 5px 10px
         overflow hidden
     .link
         background #fff
@@ -48,4 +51,22 @@ body
             background-color #eee
         img
             width 50px
-
+.btn-group
+    display block
+    font-size 0
+    margin 20px -5px 0
+    text-align center
+    .item
+        display inline-block
+        font-size $font-size
+        margin 0 5px 10px
+        vertical-align middle
+    .link
+        display block
+.btn
+    background #00bfff
+    border-radius 5px
+    color #fff
+    padding .5em 1em
+    &:hover
+        background-color darken(#00bfff, 10%)
