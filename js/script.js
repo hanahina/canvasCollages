@@ -206,10 +206,13 @@
 
     document.getElementById('imgDownload').addEventListener('click', function(e) {
         clearFocus()
-
         const downloadImg = canvas.toDataURL('image/jpeg', .75)
-
         this.download = docTitle + '_' + Date.now() + '.jpg'
-        this.href = canvas.toDataURL('image/png')
+        this.href = downloadImg
+    })
+
+    document.getElementById('clearBoard').addEventListener('click', function(e) {
+        imgItems.length = 0
+        drawItems(imgItems)
     })
 })(window ,document)
