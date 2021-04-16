@@ -14,6 +14,8 @@
         height: canvas.height,
         ratioX: canvas.clientWidth / canvas.width,
         ratioY: canvas.clientHeight / canvas.height,
+        translate: 0,
+
     }
     const itemOffset = 10
     const imgItems = []
@@ -24,38 +26,62 @@
         return Math.round(nowNumber / ratio * 100) / 100
     }
 
+    // 角度轉弧度
+    function degToArc(degree) {
+        const transArc = Math.PI / 180 * degree
+        return transArc
+    }
+
     // 進行圖片組的繪製
     function drawItems(array) {
         ctx.clearRect(0, 0, canvasInfo.width, canvasInfo.height)
+        // 紀錄原始狀態
+        ctx.save();
         ctx.fillStyle = '#fff'
         ctx.fillRect(0, 0, canvasInfo.width, canvasInfo.height)
 
         array.forEach(function(item) {
-            ctx.drawImage(item.target, item.originX, item.originY, item.eleWidth, item.eleHeight)
+            const {target, originX, originY, eleWidth, eleHeight, eleTranslate, eleRotate, hoverOn, checkOn, focusOn} = item
+            const startX = originX - eleTranslate[0]
+            const startY = originY - eleTranslate[1]
+            ctx.restore()
+            ctx.translate(eleTranslate[0], eleTranslate[1])
+            ctx.rotate(degToArc(eleRotate))
+            ctx.drawImage(target, startX, startY, eleWidth, eleHeight)
 
-            if(item.hoverOn && !itemOnChecked) {
+
+            ctx.lineWidth = lineWidth * 5
+            ctx.strokeStyle = 'purple';
+            ctx.setLineDash([0, lineWidth * 15])
+            ctx.lineCap = 'round'
+            ctx.strokeRect(startX, startY, eleWidth, eleHeight)
+
+            if(hoverOn && !itemOnChecked) {
                 ctx.lineWidth = lineWidth
                 ctx.strokeStyle = '#23f3fa';
                 ctx.setLineDash([lineWidth * 2, lineWidth * 3])
                 ctx.lineCap = 'round'
-                ctx.strokeRect(item.originX, item.originY, item.eleWidth, item.eleHeight)
+                ctx.strokeRect(startX, startY, eleWidth, eleHeight)
             }
 
-            if(item.checkOn) {
+            if(checkOn) {
                 ctx.lineWidth = lineWidth * 2
                 ctx.strokeStyle = '#fc127b';
                 ctx.setLineDash([])
                 ctx.lineJoin = 'round'
-                ctx.strokeRect(item.originX, item.originY, item.eleWidth, item.eleHeight)
+                ctx.strokeRect(startX, startY, eleWidth, eleHeight)
             }
 
-            if(item.focusOn) {
+            if(focusOn) {
                 ctx.lineWidth = lineWidth * 3
                 ctx.strokeStyle = '#fd88df';
                 ctx.setLineDash([])
                 ctx.lineJoin = 'round'
-                ctx.strokeRect(item.originX, item.originY, item.eleWidth, item.eleHeight)
+                ctx.strokeRect(startX, startY, eleWidth, eleHeight)
             }
+            // 回復原始狀態
+            ctx.rotate(degToArc(eleRotate) * -1)
+            ctx.translate(eleTranslate[0] * -1, eleTranslate[1] * -1)
         })
     }
 
@@ -82,8 +108,6 @@
             itemImg.src = item.getAttribute('href')
             itemImg.onload = function(){
                 itemsID += 1
-                ctx.drawImage(itemImg, itemsID * itemOffset, itemsID * itemOffset, itemImg.width, itemImg.height)
-
                 imgItems.push({
                     id: itemsID,
                     eleHeight: itemImg.height,
@@ -96,7 +120,10 @@
                     focusOn: false,
                     hoverOn: false,
                     checkOn: false,
+                    eleTranslate: [0, 0],
+                    eleRotate: 0,
                 })
+                drawItems(imgItems)
             }
             console.log(imgItems);
         })
@@ -167,9 +194,10 @@
         }
 
         imgItems.forEach(function(item) {
+            const itemArc = degToArc(item.eleRotate)
             if(item.checkOn) {
-                item.originX += offsetX
-                item.originY += offsetY
+                item.originX = item.originX + offsetX * Math.cos(itemArc) + offsetY * Math.sin(itemArc)
+                item.originY = item.originY - offsetX * Math.sin(itemArc) + offsetY * Math.cos(itemArc)
             }
         })
 
@@ -319,7 +347,6 @@
     // 放大
     document.getElementById('zoomIn').addEventListener('click', function(e) {
         e.preventDefault()
-        let targetIndex, targetObj
         imgItems.forEach(function(item) {
             if(item.focusOn) {
                 const zoomInHeight = item.eleHeight + item.originHeight / 10
@@ -334,13 +361,38 @@
     // 縮小
     document.getElementById('zoomOut').addEventListener('click', function(e) {
         e.preventDefault()
-        let targetIndex, targetObj
         imgItems.forEach(function(item) {
             if(item.focusOn) {
                 const zoomOutHeight = item.eleHeight - item.originHeight / 10
                 const zoomOutWidth = item.eleWidth - item.originWidth / 10
                 item.eleHeight = (zoomOutHeight > 0)? zoomOutHeight: 0
                 item.eleWidth = (zoomOutWidth > 0)? zoomOutWidth: 0
+            }
+        })
+        drawItems(imgItems)
+    })
+
+    // 順時針旋轉
+    document.getElementById('clockWise').addEventListener('click', function(e) {
+        e.preventDefault()
+        imgItems.forEach(function(item) {
+            if(item.focusOn) {
+                item.eleRotate = (item.eleRotate + 15) % 360
+                item.eleTranslate[0] = item.originX + item.eleWidth / 2
+                item.eleTranslate[1] = item.originY + item.eleHeight / 2
+            }
+        })
+        drawItems(imgItems)
+    })
+
+    // 逆時針旋轉
+    document.getElementById('antiClockWise').addEventListener('click', function(e) {
+        e.preventDefault()
+        imgItems.forEach(function(item) {
+            if(item.focusOn) {
+                item.eleRotate = (item.eleRotate - 15) % 360
+                item.eleTranslate[0] = item.originX + item.eleWidth / 2
+                item.eleTranslate[1] = item.originY + item.eleHeight / 2
             }
         })
         drawItems(imgItems)

@@ -38,8 +38,10 @@ html(lang="zh-Hant-TW")
                             a.link.btn#zoomIn(href="javascript:;") 放大
                         li.item
                             a.link.btn#zoomOut(href="javascript:;") 縮小
-                        //- li.item
-                        //-     a.link.btn#redoActive(href="javascript:;") 取消復原
+                        li.item
+                            a.link.btn#antiClockWise(href="javascript:;") 逆時針旋轉
+                        li.item
+                            a.link.btn#clockWise(href="javascript:;") 順時針旋轉
                 .tab-content
                     ul.element-group
                         - for(var i = 0; i < 10; i++)
