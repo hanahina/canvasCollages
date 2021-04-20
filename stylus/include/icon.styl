@@ -1,0 +1,52 @@
+icons = {
+    'anti-clockwise': 'anti_clockwise.svg',
+    'clockwise': 'clockwise.svg',
+    'close': 'close.svg',
+    'close-circle': 'close_circle.svg',
+    'close-square': 'close_square.svg',
+    'copy': 'copy.svg',
+    'download': 'download.svg',
+    'eraser': 'eraser.svg',
+    'focus-clear': 'focus_clear.svg',
+    'focus-off': 'focus_off.svg',
+    'focus-on': 'focus_on.svg',
+    'go-back': 'go_back.svg',
+    'go-backward': 'go_backward.svg',
+    'go-forward': 'go_forward.svg',
+    'go-front': 'go_front.svg',
+    'maximum': 'maximum.svg',
+    'minimum': 'minimum.svg',
+    'mirror-horizontal': 'mirror_horizontal.svg',
+    'mirror-vertical': 'mirror_vertical.svg',
+    'pen': 'pen.svg',
+    'pencil': 'pencil.svg',
+    'pin': 'pin.svg',
+    'pin-add': 'pin_add.svg',
+    'pin-clear': 'pin_clear.svg',
+    'pin-del': 'pin_del.svg',
+    'redo': 'redo.svg',
+    'save': 'save.svg',
+    'save-as': 'save_as.svg',
+    'search': 'search.svg',
+    'select': 'select.svg',
+    'share': 'share.svg',
+    'trash': 'trash.svg',
+    'undo': 'undo.svg',
+    'upload': 'upload.svg',
+    'zoom-in': 'zoom_in.svg',
+    'zoom-out': 'zoom_out.svg',
+}
+.icon
+    background $font-color
+    display: inline-block
+    height 1em
+    -webkit-mask $mk = center center no-repeat
+    mask $mk
+    vertical-align top
+    width @height
+    for name, path in icons
+        &.icon-{name}
+            -webkit-mask-image: $mki = url(mediaPath + "/icons/" + path)
+            mask-image: $mki
+    img
+        display none

@@ -44,6 +44,71 @@
         return finalArea
     }
 
+    // 計算X軸位移
+    function XaxisMove (originX, offsetX, offsetY, itemArc) {
+        return originX + offsetX * Math.cos(itemArc) + offsetY * Math.sin(itemArc)
+    }
+
+    // 計算Y軸位移
+    function YaxisMove (originY, offsetX, offsetY, itemArc) {
+        return originY - offsetX * Math.sin(itemArc) + offsetY * Math.cos(itemArc)
+    }
+
+    // 取得
+    function getXaxis(length, degree) {
+        return length * Math.cos(degToArc(degree))
+    }
+
+    function getYaxis(length, degree) {
+        return length * Math.sin(degToArc(degree))
+    }
+
+    function diagonalLength(width, height) {
+        return Math.sqrt(Math.pow(width, 2) + Math.pow(height, 2))
+    }
+
+    function getFourCorner(itemObj) {
+        const {originX, originY, eleHeight, eleWidth, eleRotate, } = itemObj
+        const itemDiagonal = diagonalLength(eleWidth, eleHeight)
+        const itemInsideAngle = Math.atan(eleHeight / eleWidth)
+
+        // 相對四個角的座標
+        const fourCorner = {
+            corner1: [originX, originY],
+            corner2: [originX + eleWidth, originY],
+            corner3: [originX + eleWidth, originY + eleHeight],
+            corner4: [originX, originY + eleHeight],
+        }
+
+        return fourCorner
+    }
+
+    function rangeCheck(itemObj, naturalX, naturalY) {
+        const {originX, originY, eleHeight, eleWidth, eleRotate, } = itemObj
+        const fourCorner = getFourCorner(itemObj)
+        const centerX = (fourCorner.corner1[0] + fourCorner.corner2[0] + fourCorner.corner3[0] + fourCorner.corner4[0]) / 4
+        const centerY = (fourCorner.corner1[1] + fourCorner.corner2[1] + fourCorner.corner3[1] + fourCorner.corner4[1]) / 4
+        const itemLength = diagonalLength(eleWidth, eleHeight) / 2
+        const fourDegree = {
+            degree1: arcToDeg(Math.acos((fourCorner.corner1[0] - centerX) / itemLength)),
+            degree2: arcToDeg(Math.acos((fourCorner.corner2[0] - centerX) / itemLength)),
+            degree3: arcToDeg(Math.acos((centerX - fourCorner.corner3[0]) / itemLength) + Math.PI),
+            degree4: arcToDeg(Math.acos((centerX - fourCorner.corner4[0]) / itemLength) + Math.PI),
+        }
+        const newFourCorner = {
+            corner1: [centerX + Math.cos(degToArc(fourDegree.degree1 + eleRotate)) * itemLength, centerY + Math.sin(degToArc(fourDegree.degree1 + eleRotate)) * itemLength],
+            corner2: [centerX + Math.cos(degToArc(fourDegree.degree2 + eleRotate)) * itemLength, centerY + Math.sin(degToArc(fourDegree.degree2 + eleRotate)) * itemLength],
+            corner3: [centerX + Math.cos(degToArc(fourDegree.degree3 + eleRotate)) * itemLength, centerY + Math.sin(degToArc(fourDegree.degree3 + eleRotate)) * itemLength],
+            corner4: [centerX + Math.cos(degToArc(fourDegree.degree4 + eleRotate)) * itemLength, centerY + Math.sin(degToArc(fourDegree.degree4 + eleRotate)) * itemLength],
+        }
+        const {corner1, corner2, corner3, corner4} = newFourCorner
+        const areaSum = areaInThreePoint(naturalX, naturalY, corner1[0], corner1[1], corner2[0], corner2[1]) + areaInThreePoint(naturalX, naturalY, corner2[0], corner2[1], corner3[0], corner3[1]) +areaInThreePoint(naturalX, naturalY, corner3[0], corner3[1], corner4[0], corner4[1]) +areaInThreePoint(naturalX, naturalY, corner4[0], corner4[1], corner1[0], corner1[1])
+
+        return (Math.round(areaSum) === eleHeight * eleWidth)
+
+    }
+
+
     // 進行圖片組的繪製
     function drawItems(array) {
         ctx.clearRect(0, 0, canvasInfo.width, canvasInfo.height)
@@ -61,13 +126,6 @@
             ctx.translate(eleTranslate[0], eleTranslate[1])
             ctx.rotate(degToArc(eleRotate))
             ctx.drawImage(target, startX, startY, eleWidth, eleHeight)
-
-
-            ctx.lineWidth = lineWidth * 5
-            ctx.strokeStyle = 'purple';
-            ctx.setLineDash([0, lineWidth * 15])
-            ctx.lineCap = 'round'
-            ctx.strokeRect(startX, startY, eleWidth, eleHeight)
 
             if(hoverOn && !itemOnChecked) {
                 ctx.lineWidth = lineWidth
@@ -121,7 +179,7 @@
             itemImg.src = item.getAttribute('href')
             itemImg.onload = function(){
                 itemsID += 1
-                imgItems.push({
+                const pushObj = {
                     id: itemsID,
                     eleHeight: itemImg.height,
                     eleWidth: itemImg.width,
@@ -135,7 +193,8 @@
                     checkOn: false,
                     eleTranslate: [0, 0],
                     eleRotate: 0,
-                })
+                }
+                imgItems.push(pushObj)
                 drawItems(imgItems)
             }
             console.log(imgItems);
@@ -154,34 +213,7 @@
         // mouseDown check
         for (let i = 0; i < imgItems.length; i++) {
             const ele = imgItems[i]
-            const {eleHeight, eleWidth, originX, originY, eleRotate, } = ele
-
-            const centerX = originX + eleWidth / 2
-            const centerY = originY + eleHeight / 2
-            const itemLength = Math.sqrt(Math.pow(eleWidth / 2, 2) + Math.pow(eleHeight / 2, 2))
-
-            const fourCorner = {
-                corner1: [originX + eleWidth, originY + eleHeight],
-                corner2: [originX, originY + eleHeight],
-                corner3: [originX, originY],
-                corner4: [originX + eleWidth, originY],
-            }
-            const fourDegree = {
-                degree1: arcToDeg(Math.acos((fourCorner.corner1[0] - centerX) / itemLength)),
-                degree2: arcToDeg(Math.acos((fourCorner.corner2[0] - centerX) / itemLength)),
-                degree3: arcToDeg(Math.acos((centerX - fourCorner.corner3[0]) / itemLength) + Math.PI),
-                degree4: arcToDeg(Math.acos((centerX - fourCorner.corner4[0]) / itemLength) + Math.PI),
-            }
-            const newFourCorner = {
-                corner1: [centerX + Math.cos(degToArc(fourDegree.degree1 + eleRotate)) * itemLength, centerY + Math.sin(degToArc(fourDegree.degree1 + eleRotate)) * itemLength],
-                corner2: [centerX + Math.cos(degToArc(fourDegree.degree2 + eleRotate)) * itemLength, centerY + Math.sin(degToArc(fourDegree.degree2 + eleRotate)) * itemLength],
-                corner3: [centerX + Math.cos(degToArc(fourDegree.degree3 + eleRotate)) * itemLength, centerY + Math.sin(degToArc(fourDegree.degree3 + eleRotate)) * itemLength],
-                corner4: [centerX + Math.cos(degToArc(fourDegree.degree4 + eleRotate)) * itemLength, centerY + Math.sin(degToArc(fourDegree.degree4 + eleRotate)) * itemLength],
-            }
-            const {corner1, corner2, corner3, corner4} = newFourCorner
-            const areaSum = areaInThreePoint(naturalX, naturalY, corner1[0], corner1[1], corner2[0], corner2[1]) + areaInThreePoint(naturalX, naturalY, corner2[0], corner2[1], corner3[0], corner3[1]) +areaInThreePoint(naturalX, naturalY, corner3[0], corner3[1], corner4[0], corner4[1]) +areaInThreePoint(naturalX, naturalY, corner4[0], corner4[1], corner1[0], corner1[1])
-
-            if(Math.round(areaSum) === eleHeight * eleWidth) {
+            if(rangeCheck(ele, naturalX, naturalY)) {
                 ele.checkOn = true
                 ele.focusOn = true
                 for (let j = 0; j < i; j++) {
@@ -217,34 +249,8 @@
         // hoverOn check
         for (let i = 0; i < imgItems.length; i++) {
             const ele = imgItems[i]
-            const {eleHeight, eleWidth, originX, originY, eleRotate,} = ele
-
-            const centerX = originX + eleWidth / 2
-            const centerY = originY + eleHeight / 2
-            const itemLength = Math.sqrt(Math.pow(eleWidth / 2, 2) + Math.pow(eleHeight / 2, 2))
-
-            const fourCorner = {
-                corner1: [originX + eleWidth, originY + eleHeight],
-                corner2: [originX, originY + eleHeight],
-                corner3: [originX, originY],
-                corner4: [originX + eleWidth, originY],
-            }
-            const fourDegree = {
-                degree1: arcToDeg(Math.acos((fourCorner.corner1[0] - centerX) / itemLength)),
-                degree2: arcToDeg(Math.acos((fourCorner.corner2[0] - centerX) / itemLength)),
-                degree3: arcToDeg(Math.acos((centerX - fourCorner.corner3[0]) / itemLength) + Math.PI),
-                degree4: arcToDeg(Math.acos((centerX - fourCorner.corner4[0]) / itemLength) + Math.PI),
-            }
-            const newFourCorner = {
-                corner1: [centerX + Math.cos(degToArc(fourDegree.degree1 + eleRotate)) * itemLength, centerY + Math.sin(degToArc(fourDegree.degree1 + eleRotate)) * itemLength],
-                corner2: [centerX + Math.cos(degToArc(fourDegree.degree2 + eleRotate)) * itemLength, centerY + Math.sin(degToArc(fourDegree.degree2 + eleRotate)) * itemLength],
-                corner3: [centerX + Math.cos(degToArc(fourDegree.degree3 + eleRotate)) * itemLength, centerY + Math.sin(degToArc(fourDegree.degree3 + eleRotate)) * itemLength],
-                corner4: [centerX + Math.cos(degToArc(fourDegree.degree4 + eleRotate)) * itemLength, centerY + Math.sin(degToArc(fourDegree.degree4 + eleRotate)) * itemLength],
-            }
-            const {corner1, corner2, corner3, corner4} = newFourCorner
-            const areaSum = areaInThreePoint(naturalX, naturalY, corner1[0], corner1[1], corner2[0], corner2[1]) + areaInThreePoint(naturalX, naturalY, corner2[0], corner2[1], corner3[0], corner3[1]) +areaInThreePoint(naturalX, naturalY, corner3[0], corner3[1], corner4[0], corner4[1]) +areaInThreePoint(naturalX, naturalY, corner4[0], corner4[1], corner1[0], corner1[1])
-
-            if(Math.round(areaSum) === eleHeight * eleWidth) {
+            if(rangeCheck(ele, naturalX, naturalY)) {
+                canvas.style.cursor = 'pointer'
                 ele.hoverOn = true
                 for (let j = 0; j < i; j++) {
                     if(imgItems[j].hoverOn) {
@@ -252,6 +258,7 @@
                     }
                 }
             } else {
+                canvas.removeAttribute('style')
                 ele.hoverOn = false
             }
         }
@@ -259,14 +266,13 @@
         imgItems.forEach(function(item) {
             const itemArc = degToArc(item.eleRotate)
             if(item.checkOn) {
-                item.originX = item.originX + offsetX * Math.cos(itemArc) + offsetY * Math.sin(itemArc)
-                item.originY = item.originY - offsetX * Math.sin(itemArc) + offsetY * Math.cos(itemArc)
+                item.originX = XaxisMove (item.originX, offsetX, offsetY, itemArc)
+                item.originY = YaxisMove (item.originY, offsetX, offsetY, itemArc)
             }
         })
 
         drawItems(imgItems)
     })
-
 
 
     canvas.addEventListener('mouseup', function(e){
@@ -452,6 +458,7 @@
     document.getElementById('antiClockWise').addEventListener('click', function(e) {
         e.preventDefault()
         imgItems.forEach(function(item) {
+
             if(item.focusOn) {
                 item.eleRotate = (item.eleRotate - 15) % 360
                 item.eleTranslate[0] = item.originX + item.eleWidth / 2
@@ -460,7 +467,4 @@
         })
         drawItems(imgItems)
     })
-
-
-    console.log(areaInThreePoint(0, 0, 0, 4, 3, 0));
 })(window ,document)
