@@ -45,13 +45,13 @@
     }
 
     // 計算X軸位移
-    function XaxisMove (originX, offsetX, offsetY, itemArc) {
-        return originX + offsetX * Math.cos(itemArc) + offsetY * Math.sin(itemArc)
+    function XaxisMove (origin, offset, itemArc) {
+        return origin + offset * Math.abs(Math.cos(itemArc)) + offset * Math.abs(Math.sin(itemArc))
     }
 
     // 計算Y軸位移
-    function YaxisMove (originY, offsetX, offsetY, itemArc) {
-        return originY - offsetX * Math.sin(itemArc) + offsetY * Math.cos(itemArc)
+    function YaxisMove (origin, offset, itemArc) {
+        return origin + offset * Math.abs(Math.sin(itemArc)) + offset * Math.abs(Math.cos(itemArc))
     }
 
     // 取得
@@ -68,10 +68,7 @@
     }
 
     function getFourCorner(itemObj) {
-        const {originX, originY, eleHeight, eleWidth, eleRotate, } = itemObj
-        const itemDiagonal = diagonalLength(eleWidth, eleHeight)
-        const itemInsideAngle = Math.atan(eleHeight / eleWidth)
-
+        const {originX, originY, eleHeight, eleWidth, } = itemObj
         // 相對四個角的座標
         const fourCorner = {
             corner1: [originX, originY],
@@ -79,7 +76,6 @@
             corner3: [originX + eleWidth, originY + eleHeight],
             corner4: [originX, originY + eleHeight],
         }
-
         return fourCorner
     }
 
@@ -108,7 +104,6 @@
 
     }
 
-
     // 進行圖片組的繪製
     function drawItems(array) {
         ctx.clearRect(0, 0, canvasInfo.width, canvasInfo.height)
@@ -118,7 +113,9 @@
         ctx.fillRect(0, 0, canvasInfo.width, canvasInfo.height)
 
         array.forEach(function(item) {
-            const {target, originX, originY, eleWidth, eleHeight, eleTranslate, eleRotate, hoverOn, checkOn, focusOn} = item
+            const {target, originX, originY, eleWidth, eleHeight, eleRotate, hoverOn, checkOn, focusOn} = item
+            const eleTranslate = [originX + eleWidth / 2, originY + eleHeight / 2]
+
             const startX = originX - eleTranslate[0]
             const startY = originY - eleTranslate[1]
 
@@ -191,7 +188,6 @@
                     focusOn: false,
                     hoverOn: false,
                     checkOn: false,
-                    eleTranslate: [0, 0],
                     eleRotate: 0,
                 }
                 imgItems.push(pushObj)
@@ -203,6 +199,7 @@
 
     canvas.addEventListener('mousedown', function(e){
         e.preventDefault()
+        canvas.style.cursor = 'move'
 
         const naturalX = getNaturalSize(e.offsetX, canvasInfo.ratioX)
         const naturalY = getNaturalSize(e.offsetY, canvasInfo.ratioY)
@@ -250,24 +247,25 @@
         for (let i = 0; i < imgItems.length; i++) {
             const ele = imgItems[i]
             if(rangeCheck(ele, naturalX, naturalY)) {
-                canvas.style.cursor = 'pointer'
                 ele.hoverOn = true
                 for (let j = 0; j < i; j++) {
                     if(imgItems[j].hoverOn) {
                         imgItems[j].hoverOn = false
                     }
                 }
+                if(!ele.checkOn) {
+                    canvas.style.cursor = 'pointer'
+                }
             } else {
-                canvas.removeAttribute('style')
                 ele.hoverOn = false
             }
         }
-
+        const allHoverStatus =
         imgItems.forEach(function(item) {
             const itemArc = degToArc(item.eleRotate)
             if(item.checkOn) {
-                item.originX = XaxisMove (item.originX, offsetX, offsetY, itemArc)
-                item.originY = YaxisMove (item.originY, offsetX, offsetY, itemArc)
+                item.originX = XaxisMove (item.originX, offsetX, itemArc)
+                item.originY = YaxisMove (item.originY, offsetY, itemArc)
             }
         })
 
@@ -277,6 +275,7 @@
 
     canvas.addEventListener('mouseup', function(e){
         e.preventDefault()
+        canvas.removeAttribute('style')
 
         itemOnChecked = false
         lastX = null
@@ -447,8 +446,6 @@
         imgItems.forEach(function(item) {
             if(item.focusOn) {
                 item.eleRotate = (item.eleRotate + 15) % 360
-                item.eleTranslate[0] = item.originX + item.eleWidth / 2
-                item.eleTranslate[1] = item.originY + item.eleHeight / 2
             }
         })
         drawItems(imgItems)
@@ -461,8 +458,6 @@
 
             if(item.focusOn) {
                 item.eleRotate = (item.eleRotate - 15) % 360
-                item.eleTranslate[0] = item.originX + item.eleWidth / 2
-                item.eleTranslate[1] = item.originY + item.eleHeight / 2
             }
         })
         drawItems(imgItems)
