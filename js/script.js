@@ -100,7 +100,7 @@
         const {corner1, corner2, corner3, corner4} = newFourCorner
         const areaSum = areaInThreePoint(naturalX, naturalY, corner1[0], corner1[1], corner2[0], corner2[1]) + areaInThreePoint(naturalX, naturalY, corner2[0], corner2[1], corner3[0], corner3[1]) +areaInThreePoint(naturalX, naturalY, corner3[0], corner3[1], corner4[0], corner4[1]) +areaInThreePoint(naturalX, naturalY, corner4[0], corner4[1], corner1[0], corner1[1])
 
-        return (Math.round(areaSum) === eleHeight * eleWidth)
+        return (Math.round(areaSum) > eleHeight * eleWidth * 0.99 && Math.round(areaSum) < eleHeight * eleWidth * 1.01)
 
     }
 
