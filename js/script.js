@@ -1,4 +1,5 @@
-;(function(window ,document) {
+// canvas 畫板相關功能
+;(function($, jQuery, window ,document) {
     let lastX, lastY
     let itemsID = 0
     let itemOnChecked = false
@@ -15,7 +16,6 @@
         ratioX: canvas.clientWidth / canvas.width,
         ratioY: canvas.clientHeight / canvas.height,
         translate: 0,
-
     }
     const itemOffset = 10
     const imgItems = []
@@ -52,15 +52,6 @@
     // 計算Y軸位移
     function YaxisMove (origin, offset, itemArc) {
         return origin + offset * Math.abs(Math.sin(itemArc)) + offset * Math.abs(Math.cos(itemArc))
-    }
-
-    // 取得
-    function getXaxis(length, degree) {
-        return length * Math.cos(degToArc(degree))
-    }
-
-    function getYaxis(length, degree) {
-        return length * Math.sin(degToArc(degree))
     }
 
     function diagonalLength(width, height) {
@@ -163,36 +154,44 @@
         drawItems(imgItems)
     }
 
+    // 建立新元件資料
+    function addNewPictureItem(item) {
+        const itemImg = new Image()
+        itemImg.crossOrigin = 'anonymous'
+        itemImg.src = (item.url)? item.url: item.getAttribute('href')
+        itemImg.onload = function(){
+            itemsID += 1
+            const pushObj = {
+                id: itemsID,
+                eleHeight: itemImg.height,
+                eleWidth: itemImg.width,
+                originX: itemsID * itemOffset,
+                originY: itemsID * itemOffset,
+                originHeight: itemImg.height,
+                originWidth: itemImg.width,
+                target: itemImg,
+                focusOn: false,
+                hoverOn: false,
+                checkOn: false,
+                eleRotate: 0,
+            }
+            imgItems.push(pushObj)
+            drawItems(imgItems)
+        }
+    }
+
     window.addEventListener('resize', function(e) {
+        // canvasInfo.
         console.log('window resize');
+        console.log(canvasInfo);
     })
+
 
     itemButton.forEach(function(item) {
         item.addEventListener('click', function(e) {
             e.preventDefault()
 
-            const itemImg = new Image()
-            itemImg.crossOrigin = 'anonymous'
-            itemImg.src = item.getAttribute('href')
-            itemImg.onload = function(){
-                itemsID += 1
-                const pushObj = {
-                    id: itemsID,
-                    eleHeight: itemImg.height,
-                    eleWidth: itemImg.width,
-                    originX: itemsID * itemOffset,
-                    originY: itemsID * itemOffset,
-                    originHeight: itemImg.height,
-                    originWidth: itemImg.width,
-                    target: itemImg,
-                    focusOn: false,
-                    hoverOn: false,
-                    checkOn: false,
-                    eleRotate: 0,
-                }
-                imgItems.push(pushObj)
-                drawItems(imgItems)
-            }
+            addNewPictureItem(item)
             console.log(imgItems);
         })
     })
@@ -260,7 +259,7 @@
                 ele.hoverOn = false
             }
         }
-        const allHoverStatus =
+        // const allHoverStatus =
         imgItems.forEach(function(item) {
             const itemArc = degToArc(item.eleRotate)
             if(item.checkOn) {
@@ -271,7 +270,6 @@
 
         drawItems(imgItems)
     })
-
 
     canvas.addEventListener('mouseup', function(e){
         e.preventDefault()
@@ -302,6 +300,38 @@
         drawItems(imgItems)
     })
 
+
+
+
+
+
+    // =================== start ===================
+    //  ajax 載入圖片
+    // ===================  end  ===================
+    $('#searchProducts').on('submit', function(e) {
+        e.preventDefault()
+        const resultAry = $(this).serializeArray()
+        const resultObj = resultAry.reduce((prev, item) => {
+            const {name, value} = item
+            prev[name] = value.trim()
+            return prev
+        }, {})
+        $(this).trigger('reset')
+
+        jQuery.ajax({
+            type: 'POST',
+            url: 'https://next.json-generator.com/api/json/get/NkJvakK8q',
+            async: true,
+            data: {
+                prodID: resultObj.searchById,
+            },
+            dataType: 'json',
+        }).done((res) => {
+            addNewPictureItem(res)
+        }).fail((x, y, z) => {
+            console.log(x, y, z);
+        })
+    })
 
 
 
@@ -355,9 +385,11 @@
             }
         })
         // 往後推一格插回原陣列(陣列越後，圖層越上方)
-        const insertIndex = (targetIndex + 1 < imgItems.length)? targetIndex + 1: imgItems.length
-        imgItems.splice(insertIndex, 0, ...targetObj)
-        drawItems(imgItems)
+        if(targetIndex) {
+            const insertIndex = (targetIndex + 1 < imgItems.length)? targetIndex + 1: imgItems.length
+            imgItems.splice(insertIndex, 0, ...targetObj)
+            drawItems(imgItems)
+        }
     })
 
     // 往後一層
@@ -373,9 +405,11 @@
             }
         })
         // 往前推一格插回原陣列(陣列越前，圖層越下方)
-        const insertIndex = (targetIndex - 1 > 0)? targetIndex - 1: 0
-        imgItems.splice(insertIndex, 0, ...targetObj)
-        drawItems(imgItems)
+        if(targetIndex) {
+            const insertIndex = (targetIndex - 1 > 0)? targetIndex - 1: 0
+            imgItems.splice(insertIndex, 0, ...targetObj)
+            drawItems(imgItems)
+        }
     })
 
     // 移至最前
@@ -391,8 +425,10 @@
             }
         })
         // 插回原陣列最後面
-        imgItems.push(...targetObj)
-        drawItems(imgItems)
+        if(targetIndex) {
+            imgItems.push(...targetObj)
+            drawItems(imgItems)
+        }
     })
 
     // 移至最後
@@ -408,8 +444,10 @@
             }
         })
         // 插回原陣列最前面
-        imgItems.unshift(...targetObj)
-        drawItems(imgItems)
+        if(targetIndex) {
+            imgItems.unshift(...targetObj)
+            drawItems(imgItems)
+        }
     })
 
     // 放大
@@ -462,4 +500,32 @@
         })
         drawItems(imgItems)
     })
-})(window ,document)
+})($, jQuery, window ,document)
+
+// 錨點功能
+;(function($, jQuery, window ,document) {
+    const editor = document.getElementById('pinEditor')
+    editor.addEventListener('mouseenter', function(e) {
+        e.preventDefault()
+
+        console.log(e);
+    })
+})($, jQuery, window ,document)
+
+// 多行文字繪製
+// (function() {
+//     var width = canvas.width;
+//     var height = canvas.height;
+//     ctx.font = '160px sans-serif';
+//     var tempImg = new Image();
+//     tempImg.width = width;
+//     tempImg.height = height;
+//     tempImg.onload = function () {
+//         // 把img绘制在canvas画布上
+//         ctx.drawImage(this, 0, 0, width, height);
+//     };
+//     const ctLorem = '為什麼我對自身的血肉，看著你自己的身影幻出種種詭異的變相，自由與自在的時候，你是不認識你父親的，同時她們講你生前的故事，但那晚雖則結識了一個可愛的小友，你知道的是慈母的愛，想中止也不可能，卻難尋同樣的淚晶。活潑，扮一個漁翁，日子雖短，這才初次明白曾經有一點血肉從我自己的生命裏分出，雖則我聽說他的名字常在你的口邊，一經同伴的牴觸，為什麼我對自身的血肉，加緊我們腳脛上的鏈，葛德說，再也不容追贖，你媽說，比你住久的，也只有她，許是恨，看著你自己的身影幻出種種詭異的變相，打攪你的清聽！我自身的父母，那美秀風景的全部正像畫片似的展露在你的眼前，更不提一般黃的黃麥，有時一澄到底的清澈，山勢與地形的起伏裡，我只能問！我，他們的獨子，只要把話匣開上，我，但想起我做父親的往迹，今天已是壯年；昨天腮邊還帶著圓潤的笑渦，就這悲哀的人生也是因人差異，也是愛音樂的；雖則你回去的時候剛滿三歲，知道你，你去時也還是一個光亮，去時自去：正如你生前我不知欣喜，你媽說，你應得躲避她像你躲避青草裡一條美麗的花蛇！把一個小花圈掛上你的門前那時間我，也不免加添他們的煩愁，我也不易使他懂我的話，她們又講你怎樣喜歡拿著一根短棍站在桌上摹仿音樂會的導師，可以懂得我話裏意味的深淺，那天在柏林的會館裏，她都講給我聽過。我，你媽說，葛德說，與自然同在一個脈搏裡跳動，不如意的人生，在這道上遭受的，體態的秀美，窮困時不窮困，卻不是來作客；我們是遭放逐，你生前日常把弄的玩具小車，後來怎樣她們干涉了你，誰沒有怨，還不止是難，學一個太平軍的頭目，直到你的影像活現在我的眼前，(一九二五年七月)但我的情愫！'
+//     const lorem = 'Vivamus volutpat sollicitudin tristique. Praesent ut varius turpis. Suspendisse condimentum tincidunt arcu congue convallis. Duis imperdiet efficitur justo, id interdum dolor viverra nec. In eget nisl porta, posuere erat in, malesuada quam. In ut purus ut nibh sodales posuere in posuere eros. In faucibus felis a ultrices mollis. Aliquam erat volutpat. Cras eget tincidunt odio, eget imperdiet lorem. Donec facilisis euismod tincidunt. Aliquam sit amet ipsum justo. Donec vel arcu ut ligula posuere pharetra. Aenean porttitor in enim eget congue. Ut porta quam sed sodales pellentesque. Aenean fringilla metus at ex fringilla, quis dignissim mi laoreet.'
+
+//     tempImg.src = `data:image/svg+xml;charset=utf-8,<svg xmlns="http://www.w3.org/2000/svg"><foreignObject width="${width}" height="${height}"><body xmlns="http://www.w3.org/1999/xhtml" style="margin:0;font:${ctx.font};">${ctLorem}</body></foreignObject></svg>`
+// })()

@@ -9,7 +9,7 @@ body
     font-family 'Lato','Noto Sans TC','Helvetica','Arial','微軟正黑體',sans-serif;
     font-size $font-size
     letter-spacing: .05em
-    line-height 1.25
+    line-height 1.5
     padding 50px 0
 .wrapper
     margin-left auto
@@ -27,11 +27,29 @@ body
         width $fb
 .picture-frame
     border 5px outset #ddd
+    position relative
 .canvas-wrapper
     background #fff
     display block
     height auto
     width 100%
+.pin-editor
+    background rgba(#ff0, .25)
+    bottom 0
+    cursor none
+    left 0
+    position absolute
+    right 0
+    top 0
+.element-title
+    border-bottom 1px solid #ddd
+    font-size 20px
+    margin-bottom 15px
+    margin-top 30px
+    padding-bottom 5px
+    text-align center
+    &:first-child
+        margin-top 0
 .element-group
     display block
     font-size 0
@@ -52,7 +70,19 @@ body
         &:hover
             background-color #eee
         img
-            width 50px
+            height 50px
+            object-fit: contain
+            width @height
+
+btnLinearGradient(degree, color)
+    background-color color
+    background-image linear-gradient(degree, rgba(lighten(color, 75%), .25) 0%, rgba(lighten(color, 75%), .5) 30%, rgba(lighten(color, 75%), 0) 60%, rgba(darken(color, 75%), .5) 100%)
+    z-index contrast(color)['ratio'];
+    if(contrast(color)['ratio'] > 2)
+        color #fff
+    else
+        color #000
+
 .btn-group
     display block
     font-size 0
@@ -64,23 +94,23 @@ body
         font-size 20px
         margin 0
         vertical-align middle
+        &:first-child
+            padding-left 10px
+        &:last-child
+            padding-right 10px
+        .canvasEditor-group&
+            btnLinearGradient(180deg, #666)
+        .pinEditor-group&
+            btnLinearGradient(180deg, #333)
     .link
-        background #666 linear-gradient(180deg, rgba(#fff, .25) 0%, rgba(#fff, .5) 30%, rgba(#fff, 0) 60%, rgba(darken(#666, 75%), .5) 100%)
-        color #fff
         display block
         padding 10px 10px
         &:hover
-            background-image linear-gradient(0deg, rgba(#fff, .25) 0%, rgba(#fff, .5) 30%, rgba(#fff, 0) 60%, rgba(darken(#666, 75%), .5) 100%)
-    .item:first-child
-        .link
-            border-radius 5px 0 0 5px
-            padding-left 20px
-    .item:last-child
-        .link
-            border-radius 0 5px 5px 0
-            padding-right 20px
+            .canvasEditor-group&
+                btnLinearGradient(0deg, #666)
+            .pinEditor-group&
+                btnLinearGradient(0deg, #333)
     .icon
-        background #fff
         display block
         margin 0 auto
 .btn
