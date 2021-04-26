@@ -502,13 +502,148 @@
     })
 })($, jQuery, window ,document)
 
+
 // 錨點功能
 ;(function($, jQuery, window ,document) {
+    let pinID = 0
     const editor = document.getElementById('pinEditor')
+    const cursorBox = document.createElement('DIV')
+    cursorBox.classList.add('pin-cursor')
+
+    function addPin(editor, e) {
+        pinID += 1
+        const editorOffset = $(editor).offset()
+
+        // =================== start ===================
+        //  錨點功能相關區塊
+        // ===================  end  ===================
+        // pin button
+        const pinBtn = document.createElement('button')
+        pinBtn.classList.add('btn', 'btn-pin')
+        pinBtn.setAttribute('type', 'button')
+        const pinIcon = document.createElement('i')
+        pinIcon.classList.add('icon', 'icon-pin')
+        pinBtn.appendChild(pinIcon)
+
+        // 功能按鈕區
+        //> 修改按鈕
+        const pinEditorBtn = document.createElement('button')
+        pinEditorBtn.classList.add('btn', 'btn-editor')
+        pinEditorBtn.setAttribute('type', 'button')
+        const editorIcon = document.createElement('i')
+        editorIcon.classList.add('icon', 'icon-cog')
+        pinEditorBtn.appendChild(editorIcon)
+        //> 刪除按鈕
+        const pinDeleteBtn = document.createElement('button')
+        pinDeleteBtn.classList.add('btn', 'btn-delete')
+        pinDeleteBtn.setAttribute('type', 'button')
+        const deleteIcon = document.createElement('i')
+        deleteIcon.classList.add('icon', 'icon-trash')
+        pinDeleteBtn.appendChild(deleteIcon)
+        //> 功能外框
+        const editorBox = document.createElement('div')
+        editorBox.classList.add('editor-box')
+        editorBox.appendChild(pinEditorBtn)
+        editorBox.appendChild(pinDeleteBtn)
+
+        // input區塊
+        const keyinBox = document.createElement('input')
+        keyinBox.classList.add('pin-product')
+        keyinBox.setAttribute('type', 'text')
+
+        // 外包區塊
+        const pinBox = document.createElement('div')
+        pinBox.classList.add('pin-target')
+        pinBox.id = `prodictPin_${pinID}`
+        pinBox.appendChild(pinBtn)
+        pinBox.appendChild(editorBox)
+        pinBox.appendChild(keyinBox)
+
+        const topRatio = (e.clientY - editorOffset.top + $(window).scrollTop()) / editor.offsetHeight * 100
+        const leftRatio = (e.clientX - editorOffset.left + $(window).scrollLeft()) / editor.offsetWidth * 100
+
+        editor.prepend(pinBox)
+        $(`#prodictPin_${pinID}`).css({
+            top: `${topRatio}%`,
+            left: `${leftRatio}%`,
+        })
+        if(leftRatio > 50) {
+            pinBox.classList.add('theme-right')
+        }
+    }
+
     editor.addEventListener('mouseenter', function(e) {
         e.preventDefault()
+        this.appendChild(cursorBox)
+    })
+    editor.addEventListener('mouseleave', function(e) {
+        e.preventDefault()
+        this.removeChild(cursorBox)
+    })
+    editor.addEventListener('mousemove', function(e) {
+        e.preventDefault()
+        const editorOffset = $(this).offset()
+        const topRatio = (e.clientY - editorOffset.top + $(window).scrollTop()) / editor.offsetHeight * 100
+        const leftRatio = (e.clientX - editorOffset.left + $(window).scrollLeft()) / editor.offsetWidth * 100
 
-        console.log(e);
+        $(cursorBox).css({
+            top: `${topRatio}%`,
+            left: `${leftRatio}%`,
+        })
+    })
+
+    // 摸到既存的PIN時，不顯示focus圖示
+    $(editor).on('mouseenter', '.btn-pin, .editor-box, .pin-product:not([readonly])', function(e) {
+        e.preventDefault()
+        $(cursorBox).fadeOut(100)
+    })
+    $(editor).on('mouseleave', '.btn-pin, .editor-box, .pin-product:not([readonly])', function(e) {
+        e.preventDefault()
+        $(cursorBox).fadeIn(100)
+    })
+
+    // 判斷是否要添加PIN
+    $(editor).on('click', function(e) {
+        e.preventDefault()
+
+        if($(e.target).hasClass('pin-cursor') || $(e.target).attr('readonly')) {
+            addPin(this, e)
+            $(this).find('.pin-product').eq(0).trigger('focus')
+        }
+    })
+
+    $(editor).on('click', '.btn-pin', function(e) {
+        e.preventDefault()
+        $(this).siblings('.editor-box').fadeToggle(250)
+    })
+
+    // 暫存PIN商品編號
+    $(editor).on('blur', '.pin-product', function(e) {
+        e.preventDefault()
+        $(this).attr('readonly', true)
+    })
+    $(editor).on('keypress', '.pin-product', function(e) {
+        if(e.keyCode === 13 || e.keyCode === 108) {
+            $(this).trigger('blur')
+        }
+    })
+
+    // 編輯器關閉
+    $(editor).on('click', '.editor-box .btn', function(e) {
+        e.preventDefault()
+        $(this).parents('.editor-box').fadeOut(250)
+    })
+
+    // 修改PIN商品編號
+    $(editor).on('click', '.editor-box .btn-editor', function(e) {
+        e.preventDefault()
+        $(this).parents('.pin-target').find('.pin-product').trigger('focus').attr('readonly', false)
+    })
+
+    // 刪除PIN
+    $(editor).on('click', '.editor-box .btn-delete', function(e) {
+        e.preventDefault()
+        $(this).parents('.pin-target').remove()
     })
 })($, jQuery, window ,document)
 

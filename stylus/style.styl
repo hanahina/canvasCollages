@@ -27,6 +27,7 @@ body
         width $fb
 .picture-frame
     border 5px outset #ddd
+    overflow hidden
     position relative
 .canvas-wrapper
     background #fff
@@ -34,13 +35,125 @@ body
     height auto
     width 100%
 .pin-editor
-    background rgba(#ff0, .25)
     bottom 0
     cursor none
+    height 100%
     left 0
+    overflow hidden
     position absolute
     right 0
     top 0
+    width 100%
+    .pin-cursor
+        background #f88
+        background-size contain
+        height 35px
+        -webkit-mask $mk = center center no-repeat
+        mask $mk
+        -webkit-mask-image: $mki = url(mediaPath+"/icons/focus_on.svg")
+        mask-image: $mki
+        mix-blend-mode: difference
+        position absolute
+        transform: translate(-50%, -50%)
+        width @height
+        z-index 0
+    .pin-target
+        background rgba(#fff, .75)
+        border-radius 50%
+        box-shadow 0 0 0 3px rgba(#fff, .5)
+        height 1px
+        position absolute
+        width @height
+        z-index 10
+        // &:after
+        //     background #333
+        //     bottom 0
+        //     content ''
+        //     display: block
+        //     height 50px
+        //     left 100%
+        //     -webkit-mask $mk = left bottom no-repeat
+        //     mask $mk
+        //     -webkit-mask-image: $mki = url(mediaPath+"/icons/pin.svg")
+        //     mask-image: $mki
+        //     -webkit-mask-size: $mkz = 50%
+        //     mask-size: $mkz
+        //     position absolute
+        //     width @height
+        &:hover
+            cursor pointer
+            // ~ .pin-cursor
+            //     display none
+    .btn-pin
+        bottom 0
+        cursor pointer
+        position absolute
+        left 0
+        .icon
+            display block
+            height 25px
+            width @height
+    .pin-product
+        background rgba(#fff, .5)
+        border none
+        border-radius 5px
+        box-shadow 2px 2px 5px rgba(0, 0, 0, 0.25)
+        font inherit
+        left 100%
+        max-width 200px
+        padding .25em 1em
+        position absolute
+        top 100%
+        &[readonly]
+            background transparent
+            box-shadow none
+            cursor none
+            opacity .5
+            padding 0 5px
+    .theme-right
+        .pin-product
+            left auto
+            right 100%
+            text-align right
+    .editor-box
+        bottom 0
+        display none
+        left 40px
+        position absolute
+        transform: translateY(25%)
+        z-index 20
+.editor-box
+    background rgba(#fff, .75)
+    border 2px solid #888
+    border-radius 5px
+    display: block
+    padding 5px
+    &:before
+        border solid transparent
+        border-right-color #888
+        border-width 6px 9px 6px 0
+        bottom 0
+        content ''
+        display: block
+        height 0
+        margin auto
+        position absolute
+        right 100%
+        top 0
+        width 0
+    .btn
+        cursor pointer
+        display block
+        padding 5px
+        &-delete
+            .icon
+                background-color #d00
+        &-editor
+            .icon
+                background-color #080
+    .icon
+        height 25px
+        width @height
 .element-title
     border-bottom 1px solid #ddd
     font-size 20px
@@ -113,12 +226,40 @@ btnLinearGradient(degree, color)
     .icon
         display block
         margin 0 auto
-.btn
-    background #00bfff
-    border-radius 5px
-    padding .5em 1em
-    &:hover
-        background-color darken(#00bfff, 10%)
+.search-form
+    display: flex
+    margin 0 auto
+    max-width 350px
+    input
+    button
+        display: block
+        font inherit
+    input
+        background #fff
+        border 1px solid #666
+        border-radius 5px 0 0 5px
+        flex 0 0 $fb = calc(100% - 60px)
+        max-width $fb
+        padding .5em 1em
+        width $fb
+    button
+        background #666
+        border-radius 0 5px 5px 0
+        color #fff
+        flex 0 0 $fb = 60px
+        max-width $fb
+        text-align center
+        width $fb
+        &:hover
+            background-color darken(#666, 15%)
+
+
+// .btn
+//     background #00bfff
+//     border-radius 5px
+//     padding .5em 1em
+//     &:hover
+//         background-color darken(#00bfff, 10%)
 .icons-group
     font-size 0
     .item

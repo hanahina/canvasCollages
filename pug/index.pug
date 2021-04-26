@@ -19,6 +19,15 @@ html(lang="zh-Hant-TW")
                     div.picture-frame
                         canvas.canvas-wrapper#canvasWrap(width="2000" height="2500")
                         .pin-editor#pinEditor
+                            //- .pin-target#prodictPin(style="top: 66.5323%; left: 36.272%;")
+                            //-     button.btn.btn-pin(type="button")
+                            //-         i.icon.icon-pin
+                            //-     .editor-box
+                            //-         button.btn.btn-editor(type="button")
+                            //-             i.icon.icon-cog
+                            //-         button.btn.btn-delete(type="button")
+                            //-             i.icon.icon-trash
+                            //-     input.pin-product(type="text")
                     ul.btn-group.canvasEditor-group
                         li.item
                             a.link#clearFocus(href="javascript:;" title="取消選取")
@@ -56,43 +65,43 @@ html(lang="zh-Hant-TW")
                         li.item
                             a.link#clockWise(href="javascript:;" title="順時針旋轉")
                                 i.icon.icon-clockwise(aria-label="順時針旋轉")
-                    ul.btn-group.pinEditor-group
-                        li.item
-                            a.link#clearFocus(href="javascript:;" title="清除錨點")
-                                i.icon.icon-close-square(aria-label="清除錨點")
-                        li.item
-                            a.link#imgDownload(href="javascript:;" title="新增錨點")
-                                i.icon.icon-download(aria-label="新增錨點")
-                        li.item
-                            a.link#deleteItem(href="javascript:;" title="刪除錨點")
-                                i.icon.icon-trash(aria-label="刪除錨點")
-                        li.item
-                            a.link#clearBoard(href="javascript:;" title="清除畫板")
-                                i.icon.icon-eraser(aria-label="清除畫板")
-                        li.item
-                            a.link#goForwardLayer(href="javascript:;" title="向上一層")
-                                i.icon.icon-go-forward(aria-label="向上一層")
-                        li.item
-                            a.link#goBackwardLayer(href="javascript:;" title="向下一層")
-                                i.icon.icon-go-backward(aria-label="向下一層")
-                        li.item
-                            a.link#goFrontLayer(href="javascript:;" title="移至最前")
-                                i.icon.icon-go-front(aria-label="移至最前")
-                        li.item
-                            a.link#goBackLayer(href="javascript:;" title="移至最後")
-                                i.icon.icon-go-back(aria-label="移至最後")
-                        li.item
-                            a.link#zoomIn(href="javascript:;" title="放大")
-                                i.icon.icon-zoom-in(aria-label="放大")
-                        li.item
-                            a.link#zoomOut(href="javascript:;" title="縮小")
-                                i.icon.icon-zoom-out(aria-label="縮小")
-                        li.item
-                            a.link#antiClockWise(href="javascript:;" title="逆時針旋轉")
-                                i.icon.icon-anti-clockwise(aria-label="逆時針旋轉")
-                        li.item
-                            a.link#clockWise(href="javascript:;" title="順時針旋轉")
-                                i.icon.icon-clockwise(aria-label="順時針旋轉")
+                    //- ul.btn-group.pinEditor-group
+                    //-     li.item
+                    //-         a.link#clearFocus(href="javascript:;" title="清除錨點")
+                    //-             i.icon.icon-close-square(aria-label="清除錨點")
+                    //-     li.item
+                    //-         a.link#imgDownload(href="javascript:;" title="新增錨點")
+                    //-             i.icon.icon-download(aria-label="新增錨點")
+                    //-     li.item
+                    //-         a.link#deleteItem(href="javascript:;" title="刪除錨點")
+                    //-             i.icon.icon-trash(aria-label="刪除錨點")
+                    //-     li.item
+                    //-         a.link#clearBoard(href="javascript:;" title="清除畫板")
+                    //-             i.icon.icon-eraser(aria-label="清除畫板")
+                    //-     li.item
+                    //-         a.link#goForwardLayer(href="javascript:;" title="向上一層")
+                    //-             i.icon.icon-go-forward(aria-label="向上一層")
+                    //-     li.item
+                    //-         a.link#goBackwardLayer(href="javascript:;" title="向下一層")
+                    //-             i.icon.icon-go-backward(aria-label="向下一層")
+                    //-     li.item
+                    //-         a.link#goFrontLayer(href="javascript:;" title="移至最前")
+                    //-             i.icon.icon-go-front(aria-label="移至最前")
+                    //-     li.item
+                    //-         a.link#goBackLayer(href="javascript:;" title="移至最後")
+                    //-             i.icon.icon-go-back(aria-label="移至最後")
+                    //-     li.item
+                    //-         a.link#zoomIn(href="javascript:;" title="放大")
+                    //-             i.icon.icon-zoom-in(aria-label="放大")
+                    //-     li.item
+                    //-         a.link#zoomOut(href="javascript:;" title="縮小")
+                    //-             i.icon.icon-zoom-out(aria-label="縮小")
+                    //-     li.item
+                    //-         a.link#antiClockWise(href="javascript:;" title="逆時針旋轉")
+                    //-             i.icon.icon-anti-clockwise(aria-label="逆時針旋轉")
+                    //-     li.item
+                    //-         a.link#clockWise(href="javascript:;" title="順時針旋轉")
+                    //-             i.icon.icon-clockwise(aria-label="順時針旋轉")
                 .tab-content
                     h2.element-title 插圖
                     ul.element-group
@@ -125,14 +134,14 @@ html(lang="zh-Hant-TW")
                                 a.link(href=mediaPath + "original/prod_" + imgName + ".png")
                                     img(src=mediaPath + "thumbnail/prod_" + imgName + ".png", alt="")
                     h2.element-title 商品搜尋
-                    form#searchProducts
+                    form.search-form#searchProducts
                         input#searchById(name="searchById" type="text")
                         button#searchSubmit(type="submit") 查詢
-            ul.icons-group
-                each path, name in icons
-                    li.item
-                        i.icon(class="icon-" + name)
-                            img(src=mediaPath + "/icons/" + path, alt="")
+            //- ul.icons-group
+            //-     each path, name in icons
+            //-         li.item
+            //-             i.icon(class="icon-" + name)
+            //-                 img(src=mediaPath + "/icons/" + path, alt="")
         footer.footer
         script(src='https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.0/jquery.min.js' crossorigin='anonymous')
         script(type="text/javascript", src="./script/script.dev.js")
