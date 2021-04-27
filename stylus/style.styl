@@ -34,6 +34,8 @@ body
     display block
     height auto
     width 100%
+    .type-pin &
+        opacity .1
 .pin-editor
     bottom 0
     cursor none
@@ -44,8 +46,10 @@ body
     right 0
     top 0
     width 100%
+    .type-canvas &
+        display: none
     .pin-cursor
-        background #f88
+        background #fff
         background-size contain
         height 35px
         -webkit-mask $mk = center center no-repeat
@@ -61,37 +65,25 @@ body
         background rgba(#fff, .75)
         border-radius 50%
         box-shadow 0 0 0 3px rgba(#fff, .5)
-        height 1px
+        height 2px
         position absolute
         width @height
         z-index 10
-        // &:after
-        //     background #333
-        //     bottom 0
-        //     content ''
-        //     display: block
-        //     height 50px
-        //     left 100%
-        //     -webkit-mask $mk = left bottom no-repeat
-        //     mask $mk
-        //     -webkit-mask-image: $mki = url(mediaPath+"/icons/pin.svg")
-        //     mask-image: $mki
-        //     -webkit-mask-size: $mkz = 50%
-        //     mask-size: $mkz
-        //     position absolute
-        //     width @height
         &:hover
             cursor pointer
-            // ~ .pin-cursor
-            //     display none
     .btn-pin
         bottom 0
         cursor pointer
         position absolute
-        left 0
+        left 50%
+        transform: translateX(-50%)
         .icon
+            background transparent url(mediaPath+"/icons/color_pin.svg") center center no-repeat
+            background-size contain
             display block
-            height 25px
+            height 35px
+            -webkit-mask $mk = none
+            mask $mk
             width @height
     .pin-product
         background rgba(#fff, .5)
@@ -99,10 +91,11 @@ body
         border-radius 5px
         box-shadow 2px 2px 5px rgba(0, 0, 0, 0.25)
         font inherit
-        left 100%
+        left -20px
         max-width 200px
         padding .25em 1em
         position absolute
+        text-align left
         top 100%
         &[readonly]
             background transparent
@@ -113,15 +106,29 @@ body
     .theme-right
         .pin-product
             left auto
-            right 100%
+            right -20px
             text-align right
     .editor-box
         bottom 0
         display none
-        left 40px
+        left 25px
         position absolute
         transform: translateY(25%)
         z-index 20
+        &:before
+            border-right-color #888
+            border-right-width 9px
+            right 100%
+    .theme-right
+        .editor-box
+            left auto
+            right 25px
+            &:before
+                border-left-color #888
+                border-left-width 9px
+                border-right-width 0
+                left 100%
+                right auto
 .editor-box
     background rgba(#fff, .75)
     border 2px solid #888
@@ -130,15 +137,14 @@ body
     padding 5px
     &:before
         border solid transparent
-        border-right-color #888
-        border-width 6px 9px 6px 0
+        border-bottom-width 6px
+        border-top-width @border-bottom-width
         bottom 0
         content ''
         display: block
         height 0
         margin auto
         position absolute
-        right 100%
         top 0
         width 0
     .btn
@@ -197,11 +203,15 @@ btnLinearGradient(degree, color)
         color #000
 
 .btn-group
-    display block
+    display none
     font-size 0
     letter-spacing 0
     margin 20px 0 0
     text-align center
+    .type-canvas .canvasEditor-group&
+        display block
+    .type-pin .pinEditor-group&
+        display block
     .item
         display inline-block
         font-size 20px
@@ -252,14 +262,6 @@ btnLinearGradient(degree, color)
         width $fb
         &:hover
             background-color darken(#666, 15%)
-
-
-// .btn
-//     background #00bfff
-//     border-radius 5px
-//     padding .5em 1em
-//     &:hover
-//         background-color darken(#00bfff, 10%)
 .icons-group
     font-size 0
     .item
@@ -267,3 +269,54 @@ btnLinearGradient(degree, color)
         font-size 30px
         vertical-align middle
 
+.switch-button
+    align-items center
+    background #666
+    border-radius 100px
+    color #fff
+    display flex
+    justify-content space-between
+    margin 0 auto 25px
+    overflow: hidden
+    padding 3px
+    width 125px
+    &:before
+    &:after
+        display block
+        overflow: hidden
+        text-align center
+        transition: .25s
+        white-space: nowrap
+    &:before
+        content '錨點管理'
+        .type-canvas &
+            flex: 0 0 0em
+            opacity 0
+        .type-pin &
+            flex: 0 0 5em
+            opacity 1
+            padding-left 5px
+    &:after
+        content '拼貼畫板'
+        .type-canvas &
+            flex: 0 0 5em
+            opacity 1
+            padding-right 5px
+        .type-pin &
+            flex: 0 0 0em
+            opacity 0
+    .switch-circle
+        background repeating-radial-gradient(rgba(#000, .75) 0%, rgba(#000, 1) 100%)
+        border 2px solid #fff
+        border-radius 50%
+        box-shadow 0 0 10px rgba(#000, .4)
+        display block
+        flex 0 0 $fb = 30px
+        height $fb
+        max-width $fb
+        transition: .25s
+        width $fb
+        .type-canvas &
+            margin-right auto
+        .type-pin &
+            margin-left auto

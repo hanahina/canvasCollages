@@ -1,196 +1,307 @@
-// canvas 畫板相關功能
-;(function($, jQuery, window ,document) {
-    let lastX, lastY
-    let itemsID = 0
-    let itemOnChecked = false
-    let lineWidth = 5
+let editorSwitch = 'canvasEditor'
+let itemsID = 0
+let pinID = 0
+let itemOnChecked = false  // 滑鼠是否按下中
+let lineWidth = 5  // 畫版標示線寬度設定
 
-    const docTitle = document.title
-    const canvas = document.getElementById('canvasWrap')
-    const ctx = canvas.getContext('2d')
-    const canvasInfo = {
-        clientWidth: canvas.clientWidth,
-        clientHeight: canvas.clientHeight,
-        width: canvas.width,
-        height: canvas.height,
-        ratioX: canvas.clientWidth / canvas.width,
-        ratioY: canvas.clientHeight / canvas.height,
-        translate: 0,
+const imgItems = []  // 畫板元件陣列
+const canvasPins = []  // 錨點陣列
+const canvas = document.getElementById('canvasWrap')
+canvas.width = 2000
+canvas.height = 2500
+const ctx = canvas.getContext('2d')
+const canvasInfo = {
+    clientWidth: canvas.clientWidth,
+    clientHeight: canvas.clientHeight,
+    width: canvas.width,
+    height: canvas.height,
+    ratioX: canvas.clientWidth / canvas.width,
+    ratioY: canvas.clientHeight / canvas.height,
+    translate: 0,
+}
+const itemOffset = 10  // 元件位移
+
+// 回饋響應式畫板當下接觸點的像素
+function getNaturalSize(nowNumber, ratio) {
+    return Math.round(nowNumber / ratio * 100) / 100
+}
+
+// 角度轉弧度
+function degToArc(degree) {
+    const transArc = Math.PI / 180 * degree
+    return transArc
+}
+
+// 弧度轉角度
+function arcToDeg(arc) {
+    const transDeg = 180 / Math.PI * arc
+    return transDeg
+}
+
+// 三點求面積
+function areaInThreePoint(ax, ay, bx, by, cx, cy) {
+    const finalArea = Math.abs((ax * by + bx * cy + cx * ay - ax * cy - cx * by - bx * ay) / 2)
+    return finalArea
+}
+
+// 計算X軸位移
+function XaxisMove (origin, offset, itemArc) {
+    return origin + offset * Math.abs(Math.cos(itemArc)) + offset * Math.abs(Math.sin(itemArc))
+}
+
+// 計算Y軸位移
+function YaxisMove (origin, offset, itemArc) {
+    return origin + offset * Math.abs(Math.sin(itemArc)) + offset * Math.abs(Math.cos(itemArc))
+}
+
+// 對角線長度計算
+function diagonalLength(width, height) {
+    return Math.sqrt(Math.pow(width, 2) + Math.pow(height, 2))
+}
+
+function getFourCorner(itemObj) {
+    const {originX, originY, eleHeight, eleWidth, } = itemObj
+    // 相對四個角的座標
+    const fourCorner = {
+        corner1: [originX, originY],
+        corner2: [originX + eleWidth, originY],
+        corner3: [originX + eleWidth, originY + eleHeight],
+        corner4: [originX, originY + eleHeight],
     }
-    const itemOffset = 10
-    const imgItems = []
-    const itemButton = document.querySelectorAll('.element-group .link')
+    return fourCorner
+}
 
-    // 回饋響應式畫板當下接觸點的像素
-    function getNaturalSize(nowNumber, ratio) {
-        return Math.round(nowNumber / ratio * 100) / 100
+// 觸發範圍檢查
+function rangeCheck(itemObj, naturalX, naturalY) {
+    const {eleHeight, eleWidth, eleRotate, } = itemObj
+    const fourCorner = getFourCorner(itemObj)
+    const centerX = (fourCorner.corner1[0] + fourCorner.corner2[0] + fourCorner.corner3[0] + fourCorner.corner4[0]) / 4
+    const centerY = (fourCorner.corner1[1] + fourCorner.corner2[1] + fourCorner.corner3[1] + fourCorner.corner4[1]) / 4
+    const itemLength = diagonalLength(eleWidth, eleHeight) / 2
+    const fourDegree = {
+        degree1: arcToDeg(Math.acos((fourCorner.corner1[0] - centerX) / itemLength)),
+        degree2: arcToDeg(Math.acos((fourCorner.corner2[0] - centerX) / itemLength)),
+        degree3: arcToDeg(Math.acos((centerX - fourCorner.corner3[0]) / itemLength) + Math.PI),
+        degree4: arcToDeg(Math.acos((centerX - fourCorner.corner4[0]) / itemLength) + Math.PI),
     }
-
-    // 角度轉弧度
-    function degToArc(degree) {
-        const transArc = Math.PI / 180 * degree
-        return transArc
+    const newFourCorner = {
+        corner1: [centerX + Math.cos(degToArc(fourDegree.degree1 + eleRotate)) * itemLength, centerY + Math.sin(degToArc(fourDegree.degree1 + eleRotate)) * itemLength],
+        corner2: [centerX + Math.cos(degToArc(fourDegree.degree2 + eleRotate)) * itemLength, centerY + Math.sin(degToArc(fourDegree.degree2 + eleRotate)) * itemLength],
+        corner3: [centerX + Math.cos(degToArc(fourDegree.degree3 + eleRotate)) * itemLength, centerY + Math.sin(degToArc(fourDegree.degree3 + eleRotate)) * itemLength],
+        corner4: [centerX + Math.cos(degToArc(fourDegree.degree4 + eleRotate)) * itemLength, centerY + Math.sin(degToArc(fourDegree.degree4 + eleRotate)) * itemLength],
     }
+    const {corner1, corner2, corner3, corner4} = newFourCorner
+    const areaSum = areaInThreePoint(naturalX, naturalY, corner1[0], corner1[1], corner2[0], corner2[1]) + areaInThreePoint(naturalX, naturalY, corner2[0], corner2[1], corner3[0], corner3[1]) +areaInThreePoint(naturalX, naturalY, corner3[0], corner3[1], corner4[0], corner4[1]) +areaInThreePoint(naturalX, naturalY, corner4[0], corner4[1], corner1[0], corner1[1])
 
-    // 弧度轉角度
-    function arcToDeg(arc) {
-        const transDeg = 180 / Math.PI * arc
-        return transDeg
-    }
+    return (Math.round(areaSum) > eleHeight * eleWidth * 0.99 && Math.round(areaSum) < eleHeight * eleWidth * 1.01)
+}
 
-    // 三點求面積
-    function areaInThreePoint(ax, ay, bx, by, cx, cy) {
-        const finalArea = Math.abs((ax * by + bx * cy + cx * ay - ax * cy - cx * by - bx * ay) / 2)
-        return finalArea
-    }
-
-    // 計算X軸位移
-    function XaxisMove (origin, offset, itemArc) {
-        return origin + offset * Math.abs(Math.cos(itemArc)) + offset * Math.abs(Math.sin(itemArc))
-    }
-
-    // 計算Y軸位移
-    function YaxisMove (origin, offset, itemArc) {
-        return origin + offset * Math.abs(Math.sin(itemArc)) + offset * Math.abs(Math.cos(itemArc))
-    }
-
-    function diagonalLength(width, height) {
-        return Math.sqrt(Math.pow(width, 2) + Math.pow(height, 2))
-    }
-
-    function getFourCorner(itemObj) {
-        const {originX, originY, eleHeight, eleWidth, } = itemObj
-        // 相對四個角的座標
-        const fourCorner = {
-            corner1: [originX, originY],
-            corner2: [originX + eleWidth, originY],
-            corner3: [originX + eleWidth, originY + eleHeight],
-            corner4: [originX, originY + eleHeight],
-        }
-        return fourCorner
-    }
-
-    function rangeCheck(itemObj, naturalX, naturalY) {
-        const {originX, originY, eleHeight, eleWidth, eleRotate, } = itemObj
-        const fourCorner = getFourCorner(itemObj)
-        const centerX = (fourCorner.corner1[0] + fourCorner.corner2[0] + fourCorner.corner3[0] + fourCorner.corner4[0]) / 4
-        const centerY = (fourCorner.corner1[1] + fourCorner.corner2[1] + fourCorner.corner3[1] + fourCorner.corner4[1]) / 4
-        const itemLength = diagonalLength(eleWidth, eleHeight) / 2
-        const fourDegree = {
-            degree1: arcToDeg(Math.acos((fourCorner.corner1[0] - centerX) / itemLength)),
-            degree2: arcToDeg(Math.acos((fourCorner.corner2[0] - centerX) / itemLength)),
-            degree3: arcToDeg(Math.acos((centerX - fourCorner.corner3[0]) / itemLength) + Math.PI),
-            degree4: arcToDeg(Math.acos((centerX - fourCorner.corner4[0]) / itemLength) + Math.PI),
-        }
-        const newFourCorner = {
-            corner1: [centerX + Math.cos(degToArc(fourDegree.degree1 + eleRotate)) * itemLength, centerY + Math.sin(degToArc(fourDegree.degree1 + eleRotate)) * itemLength],
-            corner2: [centerX + Math.cos(degToArc(fourDegree.degree2 + eleRotate)) * itemLength, centerY + Math.sin(degToArc(fourDegree.degree2 + eleRotate)) * itemLength],
-            corner3: [centerX + Math.cos(degToArc(fourDegree.degree3 + eleRotate)) * itemLength, centerY + Math.sin(degToArc(fourDegree.degree3 + eleRotate)) * itemLength],
-            corner4: [centerX + Math.cos(degToArc(fourDegree.degree4 + eleRotate)) * itemLength, centerY + Math.sin(degToArc(fourDegree.degree4 + eleRotate)) * itemLength],
-        }
-        const {corner1, corner2, corner3, corner4} = newFourCorner
-        const areaSum = areaInThreePoint(naturalX, naturalY, corner1[0], corner1[1], corner2[0], corner2[1]) + areaInThreePoint(naturalX, naturalY, corner2[0], corner2[1], corner3[0], corner3[1]) +areaInThreePoint(naturalX, naturalY, corner3[0], corner3[1], corner4[0], corner4[1]) +areaInThreePoint(naturalX, naturalY, corner4[0], corner4[1], corner1[0], corner1[1])
-
-        return (Math.round(areaSum) > eleHeight * eleWidth * 0.99 && Math.round(areaSum) < eleHeight * eleWidth * 1.01)
-
-    }
-
-    // 進行圖片組的繪製
-    function drawItems(array) {
-        ctx.clearRect(0, 0, canvasInfo.width, canvasInfo.height)
-        // 紀錄原始狀態
-        ctx.save();
-        ctx.fillStyle = '#fff'
-        ctx.fillRect(0, 0, canvasInfo.width, canvasInfo.height)
-
-        array.forEach(function(item) {
-            const {target, originX, originY, eleWidth, eleHeight, eleRotate, hoverOn, checkOn, focusOn} = item
-            const eleTranslate = [originX + eleWidth / 2, originY + eleHeight / 2]
-
-            const startX = originX - eleTranslate[0]
-            const startY = originY - eleTranslate[1]
-
-            ctx.restore()
-            ctx.translate(eleTranslate[0], eleTranslate[1])
-            ctx.rotate(degToArc(eleRotate))
-            ctx.drawImage(target, startX, startY, eleWidth, eleHeight)
-
-            if(hoverOn && !itemOnChecked) {
-                ctx.lineWidth = lineWidth
-                ctx.strokeStyle = '#23f3fa';
-                ctx.setLineDash([lineWidth * 2, lineWidth * 3])
-                ctx.lineCap = 'round'
-                ctx.strokeRect(startX, startY, eleWidth, eleHeight)
-            }
-
-            if(checkOn) {
-                ctx.lineWidth = lineWidth * 2
-                ctx.strokeStyle = '#fc127b';
-                ctx.setLineDash([])
-                ctx.lineJoin = 'round'
-                ctx.strokeRect(startX, startY, eleWidth, eleHeight)
-            }
-
-            if(focusOn) {
-                ctx.lineWidth = lineWidth * 3
-                ctx.strokeStyle = '#fd88df';
-                ctx.setLineDash([])
-                ctx.lineJoin = 'round'
-                ctx.strokeRect(startX, startY, eleWidth, eleHeight)
-            }
-            // 回復原始狀態
-            ctx.rotate(degToArc(eleRotate) * -1)
-            ctx.translate(eleTranslate[0] * -1, eleTranslate[1] * -1)
+// 檢查資料陣列中的最大流水ID
+function arrayIdCheck(ary) {
+    if(ary.length) {
+        const aryIds = ary.map((item) => {
+            return item.id
         })
+        return Math.max(...aryIds)
+    } else {
+        return 0
     }
+}
 
-    // 清除元件選取
-    function clearFocus() {
-        imgItems.forEach(function(item) {
-            if(item.focusOn) {
-                item.focusOn = false
-            }
-        })
+// 進行圖片組的繪製
+function drawItems(array) {
+    ctx.clearRect(0, 0, canvasInfo.width, canvasInfo.height)
+    // 紀錄原始狀態
+    ctx.save();
+    ctx.fillStyle = '#fff'
+    ctx.fillRect(0, 0, canvasInfo.width, canvasInfo.height)
+
+    array.forEach(function(item) {
+        const {target, originX, originY, eleWidth, eleHeight, eleRotate, hoverOn, checkOn, focusOn} = item
+        const eleTranslate = [originX + eleWidth / 2, originY + eleHeight / 2]
+
+        const startX = originX - eleTranslate[0]
+        const startY = originY - eleTranslate[1]
+
+        ctx.restore()
+        ctx.translate(eleTranslate[0], eleTranslate[1])
+        ctx.rotate(degToArc(eleRotate))
+        ctx.drawImage(target, startX, startY, eleWidth, eleHeight)
+
+        if(hoverOn && !itemOnChecked) {
+            ctx.lineWidth = lineWidth
+            ctx.strokeStyle = '#23f3fa';
+            ctx.setLineDash([lineWidth * 2, lineWidth * 3])
+            ctx.lineCap = 'round'
+            ctx.strokeRect(startX, startY, eleWidth, eleHeight)
+        }
+
+        if(checkOn) {
+            ctx.lineWidth = lineWidth * 2
+            ctx.strokeStyle = '#fc127b';
+            ctx.setLineDash([])
+            ctx.lineJoin = 'round'
+            ctx.strokeRect(startX, startY, eleWidth, eleHeight)
+        }
+
+        if(focusOn) {
+            ctx.lineWidth = lineWidth * 3
+            ctx.strokeStyle = '#fd88df';
+            ctx.setLineDash([])
+            ctx.lineJoin = 'round'
+            ctx.strokeRect(startX, startY, eleWidth, eleHeight)
+        }
+        // 回復原始狀態
+        ctx.rotate(degToArc(eleRotate) * -1)
+        ctx.translate(eleTranslate[0] * -1, eleTranslate[1] * -1)
+    })
+}
+
+// 清除元件選取
+function clearFocus() {
+    imgItems.forEach(function(item) {
+        if(item.focusOn) {
+            item.focusOn = false
+        }
+    })
+    drawItems(imgItems)
+}
+
+// 建立新元件資料
+function addNewPictureItem(item) {
+    const itemImg = new Image()
+    itemImg.crossOrigin = 'anonymous'
+    itemImg.src = (item.url)? item.url: item.getAttribute('href')
+    itemImg.onload = function(){
+        itemsID += 1
+        const pushObj = {
+            id: itemsID,
+            eleHeight: itemImg.height,
+            eleWidth: itemImg.width,
+            originX: itemsID * itemOffset,
+            originY: itemsID * itemOffset,
+            originHeight: itemImg.height,
+            originWidth: itemImg.width,
+            target: itemImg,
+            focusOn: false,
+            hoverOn: false,
+            checkOn: false,
+            eleRotate: 0,
+        }
+        imgItems.push(pushObj)
         drawItems(imgItems)
     }
+}
 
-    // 建立新元件資料
-    function addNewPictureItem(item) {
-        const itemImg = new Image()
-        itemImg.crossOrigin = 'anonymous'
-        itemImg.src = (item.url)? item.url: item.getAttribute('href')
-        itemImg.onload = function(){
-            itemsID += 1
-            const pushObj = {
-                id: itemsID,
-                eleHeight: itemImg.height,
-                eleWidth: itemImg.width,
-                originX: itemsID * itemOffset,
-                originY: itemsID * itemOffset,
-                originHeight: itemImg.height,
-                originWidth: itemImg.width,
-                target: itemImg,
-                focusOn: false,
-                hoverOn: false,
-                checkOn: false,
-                eleRotate: 0,
-            }
-            imgItems.push(pushObj)
-            drawItems(imgItems)
-        }
-    }
+// 建立新錨點
+function addPin(editor, e) {
+    pinID += 1
+    const editorOffset = $(editor).offset()
+    const topRatio = (e.clientY - editorOffset.top + $(window).scrollTop()) / editor.offsetHeight * 100
+    const leftRatio = (e.clientX - editorOffset.left + $(window).scrollLeft()) / editor.offsetWidth * 100
 
-    window.addEventListener('resize', function(e) {
-        // canvasInfo.
-        console.log('window resize');
-        console.log(canvasInfo);
+    canvasPins.push({
+        id: pinID,
+        pinLeft: leftRatio,
+        pinTop: topRatio,
+        itemsID: null
     })
+    arrayIdCheck(canvasPins)
+    // console.log(canvasPins);
 
+    // =================== start ===================
+    //  錨點功能相關區塊
+    // ===================  end  ===================
+    // pin button
+    const pinBtn = document.createElement('button')
+    pinBtn.classList.add('btn', 'btn-pin')
+    pinBtn.setAttribute('type', 'button')
+    const pinIcon = document.createElement('i')
+    pinIcon.classList.add('icon', 'icon-pin')
+    pinBtn.appendChild(pinIcon)
+
+    // 功能按鈕區
+    //> 修改按鈕
+    const pinEditorBtn = document.createElement('button')
+    pinEditorBtn.classList.add('btn', 'btn-editor')
+    pinEditorBtn.setAttribute('type', 'button')
+    const editorIcon = document.createElement('i')
+    editorIcon.classList.add('icon', 'icon-cog')
+    pinEditorBtn.appendChild(editorIcon)
+    //> 刪除按鈕
+    const pinDeleteBtn = document.createElement('button')
+    pinDeleteBtn.classList.add('btn', 'btn-delete')
+    pinDeleteBtn.setAttribute('type', 'button')
+    const deleteIcon = document.createElement('i')
+    deleteIcon.classList.add('icon', 'icon-trash')
+    pinDeleteBtn.appendChild(deleteIcon)
+    //> 功能外框
+    const editorBox = document.createElement('div')
+    editorBox.classList.add('editor-box')
+    editorBox.appendChild(pinEditorBtn)
+    editorBox.appendChild(pinDeleteBtn)
+
+    // input區塊
+    const keyinBox = document.createElement('input')
+    keyinBox.classList.add('pin-product')
+    keyinBox.setAttribute('type', 'text')
+
+    // 外包區塊
+    const pinBox = document.createElement('div')
+    pinBox.classList.add('pin-target')
+    pinBox.id = `prodictPin_${pinID}`
+    pinBox.appendChild(pinBtn)
+    pinBox.appendChild(editorBox)
+    pinBox.appendChild(keyinBox)
+
+    editor.appendChild(pinBox)
+    $(`#prodictPin_${pinID}`).css({
+        top: `${topRatio}%`,
+        left: `${leftRatio}%`,
+    })
+    if(leftRatio > 50) {
+        pinBox.classList.add('theme-right')
+    }
+}
+
+// 視窗尺寸變化
+;(function($, jQuery, window ,document) {
+    window.addEventListener('resize', function(e) {
+        e.preventDefault()
+        canvasInfo.clientHeight = canvas.clientHeight
+        canvasInfo.clientWidth = canvas.clientWidth
+        canvasInfo.ratioX = canvas.clientWidth / canvas.width
+        canvasInfo.ratioY = canvas.clientHeight / canvas.height
+    })
+})($, jQuery, window ,document)
+
+// 畫板切換
+;(function($, jQuery, window ,document) {
+    $('.switch-button').on('click', function(e) {
+        e.preventDefault()
+        const $switchTarget = $('.wrapper')
+
+        if(editorSwitch === 'canvasEditor') {
+            editorSwitch = 'pinEditor'
+            $switchTarget.addClass('type-pin').removeClass('type-canvas')
+            clearFocus()
+        } else if(editorSwitch === 'pinEditor') {
+            editorSwitch = 'canvasEditor'
+            $switchTarget.removeClass('type-pin').addClass('type-canvas')
+        }
+    })
+})($, jQuery, window ,document)
+
+// canvas 畫板相關功能
+;(function($, jQuery, window ,document) {
+    itemsID = arrayIdCheck(imgItems)
+    let lastX, lastY
+    const docTitle = document.title
+    const itemButton = document.querySelectorAll('.element-group .link')
 
     itemButton.forEach(function(item) {
         item.addEventListener('click', function(e) {
             e.preventDefault()
-
             addNewPictureItem(item)
             console.log(imgItems);
         })
@@ -252,14 +363,10 @@
                         imgItems[j].hoverOn = false
                     }
                 }
-                if(!ele.checkOn) {
-                    canvas.style.cursor = 'pointer'
-                }
             } else {
                 ele.hoverOn = false
             }
         }
-        // const allHoverStatus =
         imgItems.forEach(function(item) {
             const itemArc = degToArc(item.eleRotate)
             if(item.checkOn) {
@@ -385,7 +492,7 @@
             }
         })
         // 往後推一格插回原陣列(陣列越後，圖層越上方)
-        if(targetIndex) {
+        if(targetIndex || targetIndex === 0) {
             const insertIndex = (targetIndex + 1 < imgItems.length)? targetIndex + 1: imgItems.length
             imgItems.splice(insertIndex, 0, ...targetObj)
             drawItems(imgItems)
@@ -405,7 +512,7 @@
             }
         })
         // 往前推一格插回原陣列(陣列越前，圖層越下方)
-        if(targetIndex) {
+        if(targetIndex || targetIndex === 0) {
             const insertIndex = (targetIndex - 1 > 0)? targetIndex - 1: 0
             imgItems.splice(insertIndex, 0, ...targetObj)
             drawItems(imgItems)
@@ -425,7 +532,7 @@
             }
         })
         // 插回原陣列最後面
-        if(targetIndex) {
+        if(targetIndex || targetIndex === 0) {
             imgItems.push(...targetObj)
             drawItems(imgItems)
         }
@@ -444,7 +551,7 @@
             }
         })
         // 插回原陣列最前面
-        if(targetIndex) {
+        if(targetIndex || targetIndex === 0) {
             imgItems.unshift(...targetObj)
             drawItems(imgItems)
         }
@@ -502,75 +609,12 @@
     })
 })($, jQuery, window ,document)
 
-
 // 錨點功能
 ;(function($, jQuery, window ,document) {
-    let pinID = 0
+    pinID = arrayIdCheck(canvasPins)
     const editor = document.getElementById('pinEditor')
-    const cursorBox = document.createElement('DIV')
+    const cursorBox = document.createElement('div')
     cursorBox.classList.add('pin-cursor')
-
-    function addPin(editor, e) {
-        pinID += 1
-        const editorOffset = $(editor).offset()
-
-        // =================== start ===================
-        //  錨點功能相關區塊
-        // ===================  end  ===================
-        // pin button
-        const pinBtn = document.createElement('button')
-        pinBtn.classList.add('btn', 'btn-pin')
-        pinBtn.setAttribute('type', 'button')
-        const pinIcon = document.createElement('i')
-        pinIcon.classList.add('icon', 'icon-pin')
-        pinBtn.appendChild(pinIcon)
-
-        // 功能按鈕區
-        //> 修改按鈕
-        const pinEditorBtn = document.createElement('button')
-        pinEditorBtn.classList.add('btn', 'btn-editor')
-        pinEditorBtn.setAttribute('type', 'button')
-        const editorIcon = document.createElement('i')
-        editorIcon.classList.add('icon', 'icon-cog')
-        pinEditorBtn.appendChild(editorIcon)
-        //> 刪除按鈕
-        const pinDeleteBtn = document.createElement('button')
-        pinDeleteBtn.classList.add('btn', 'btn-delete')
-        pinDeleteBtn.setAttribute('type', 'button')
-        const deleteIcon = document.createElement('i')
-        deleteIcon.classList.add('icon', 'icon-trash')
-        pinDeleteBtn.appendChild(deleteIcon)
-        //> 功能外框
-        const editorBox = document.createElement('div')
-        editorBox.classList.add('editor-box')
-        editorBox.appendChild(pinEditorBtn)
-        editorBox.appendChild(pinDeleteBtn)
-
-        // input區塊
-        const keyinBox = document.createElement('input')
-        keyinBox.classList.add('pin-product')
-        keyinBox.setAttribute('type', 'text')
-
-        // 外包區塊
-        const pinBox = document.createElement('div')
-        pinBox.classList.add('pin-target')
-        pinBox.id = `prodictPin_${pinID}`
-        pinBox.appendChild(pinBtn)
-        pinBox.appendChild(editorBox)
-        pinBox.appendChild(keyinBox)
-
-        const topRatio = (e.clientY - editorOffset.top + $(window).scrollTop()) / editor.offsetHeight * 100
-        const leftRatio = (e.clientX - editorOffset.left + $(window).scrollLeft()) / editor.offsetWidth * 100
-
-        editor.prepend(pinBox)
-        $(`#prodictPin_${pinID}`).css({
-            top: `${topRatio}%`,
-            left: `${leftRatio}%`,
-        })
-        if(leftRatio > 50) {
-            pinBox.classList.add('theme-right')
-        }
-    }
 
     editor.addEventListener('mouseenter', function(e) {
         e.preventDefault()
@@ -611,10 +655,44 @@
             $(this).find('.pin-product').eq(0).trigger('focus')
         }
     })
+    let pinOnClick = false
+    let nowTimeStamp = 0
 
-    $(editor).on('click', '.btn-pin', function(e) {
+    $(editor).on('mousedown', '.btn-pin', function(e) {
         e.preventDefault()
-        $(this).siblings('.editor-box').fadeToggle(250)
+        pinOnClick = true
+        // console.log('start:' + e.timeStamp)
+        nowTimeStamp = e.timeStamp
+    })
+
+    $(editor).on('mouseup', function(e) {
+        e.preventDefault()
+        pinOnClick = false
+        const timeDuration = e.timeStamp - nowTimeStamp
+
+        if(timeDuration < 200 && $(e.target).hasClass('icon-pin')){
+            $(e.target).parents('.btn-pin').siblings('.editor-box').fadeToggle(250)
+        }
+        // console.log(timeDuration);
+    })
+
+    $(editor).on('mousemove', '.btn-pin', function(e) {
+        e.preventDefault()
+        const editorOffset = $(editor).offset()
+        const topRatio = (e.clientY + $(this).height() / 2 - editorOffset.top + $(window).scrollTop()) / editor.offsetHeight * 100
+        const leftRatio = (e.clientX - $(this).width() * 0  - editorOffset.left + $(window).scrollLeft()) / editor.offsetWidth * 100
+
+        if(pinOnClick) {
+            $(this).parents('.pin-target').css({
+                top: `${topRatio}%`,
+                left: `${leftRatio}%`,
+            })
+            if(leftRatio >= 50) {
+                $(this).parents('.pin-target').addClass('theme-right')
+            } else {
+                $(this).parents('.pin-target').removeClass('theme-right')
+            }
+        }
     })
 
     // 暫存PIN商品編號
@@ -623,7 +701,7 @@
         $(this).attr('readonly', true)
     })
     $(editor).on('keypress', '.pin-product', function(e) {
-        if(e.keyCode === 13 || e.keyCode === 108) {
+        if(e.keyCode === 13) {
             $(this).trigger('blur')
         }
     })
