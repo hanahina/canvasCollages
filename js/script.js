@@ -4,6 +4,7 @@ let pinID = 0
 let itemOnChecked = false  // 滑鼠是否按下中
 let lineWidth = 5  // 畫版標示線寬度設定
 
+const docTitle = document.title
 const imgItems = []  // 畫板元件陣列
 const canvasPins = []  // 錨點陣列
 const canvas = document.getElementById('canvasWrap')
@@ -19,7 +20,8 @@ const canvasInfo = {
     ratioY: canvas.clientHeight / canvas.height,
     translate: 0,
 }
-const itemOffset = 10  // 元件位移
+const itemOffset = 20  // 元件位移
+const editor = document.getElementById('pinEditor')
 
 // 回饋響應式畫板當下接觸點的像素
 function getNaturalSize(nowNumber, ratio) {
@@ -59,9 +61,9 @@ function diagonalLength(width, height) {
     return Math.sqrt(Math.pow(width, 2) + Math.pow(height, 2))
 }
 
+// 相對四個角的座標
 function getFourCorner(itemObj) {
     const {originX, originY, eleHeight, eleWidth, } = itemObj
-    // 相對四個角的座標
     const fourCorner = {
         corner1: [originX, originY],
         corner2: [originX + eleWidth, originY],
@@ -94,6 +96,37 @@ function rangeCheck(itemObj, naturalX, naturalY) {
     const areaSum = areaInThreePoint(naturalX, naturalY, corner1[0], corner1[1], corner2[0], corner2[1]) + areaInThreePoint(naturalX, naturalY, corner2[0], corner2[1], corner3[0], corner3[1]) +areaInThreePoint(naturalX, naturalY, corner3[0], corner3[1], corner4[0], corner4[1]) +areaInThreePoint(naturalX, naturalY, corner4[0], corner4[1], corner1[0], corner1[1])
 
     return (Math.round(areaSum) > eleHeight * eleWidth * 0.99 && Math.round(areaSum) < eleHeight * eleWidth * 1.01)
+}
+// 取出指定圖層
+function pickLayoutDown(ary) {
+    const targetIndex = ary.findIndex(item => item.focusOn)
+    const targetObj = (targetIndex !== -1)? ary.splice(targetIndex, 1): {};
+    return {targetIndex, targetObj}
+}
+
+// 將圖層放入指定位置
+function changeLayerOrder(array, action) {
+    const {targetIndex, targetObj} = pickLayoutDown(array)
+    let insertIndex
+    switch (action) {
+        case 'goForward':
+            insertIndex = (targetIndex + 1 < array.length)? targetIndex + 1: array.length
+            break;
+        case 'goBackward':
+            insertIndex = (targetIndex - 1 > 0)? targetIndex - 1: 0
+            break;
+        case 'goFront':
+        default:
+            insertIndex = array.length
+            break;
+        case 'goBack':
+            insertIndex = 0
+            break;
+    }
+    if(targetIndex !== -1) {
+        array.splice(insertIndex, 0, ...targetObj)
+        drawItems(array)
+    }
 }
 
 // 檢查資料陣列中的最大流水ID
@@ -159,12 +192,11 @@ function drawItems(array) {
 
 // 清除元件選取
 function clearFocus() {
-    imgItems.forEach(function(item) {
-        if(item.focusOn) {
-            item.focusOn = false
-        }
-    })
-    drawItems(imgItems)
+    const targetItem = imgItems.find(item => item.focusOn)
+    if(!!targetItem) {
+        targetItem.focusOn = false
+        drawItems(imgItems)
+    }
 }
 
 // 建立新元件資料
@@ -174,6 +206,7 @@ function addNewPictureItem(item) {
     itemImg.src = (item.url)? item.url: item.getAttribute('href')
     itemImg.onload = function(){
         itemsID += 1
+        pinID += 1
         const pushObj = {
             id: itemsID,
             eleHeight: itemImg.height,
@@ -188,27 +221,23 @@ function addNewPictureItem(item) {
             checkOn: false,
             eleRotate: 0,
         }
+        const leftRatio = (pushObj.originX + pushObj.eleWidth / 2) / canvasInfo.width * 100
+        const topRatio = (pushObj.originY + pushObj.eleHeight / 2) / canvasInfo.height * 100
+        const pinInfoObj = {
+            id: pinID,
+            itemsID,
+            prodID: item.prodID,
+            pinLeft: leftRatio,
+            pinTop: topRatio,
+        }
         imgItems.push(pushObj)
+        canvasPins.push(pinInfoObj)
         drawItems(imgItems)
     }
 }
 
-// 建立新錨點
-function addPin(editor, e) {
-    pinID += 1
-    const editorOffset = $(editor).offset()
-    const topRatio = (e.clientY - editorOffset.top + $(window).scrollTop()) / editor.offsetHeight * 100
-    const leftRatio = (e.clientX - editorOffset.left + $(window).scrollLeft()) / editor.offsetWidth * 100
-
-    canvasPins.push({
-        id: pinID,
-        pinLeft: leftRatio,
-        pinTop: topRatio,
-        itemsID: null
-    })
-    arrayIdCheck(canvasPins)
-    // console.log(canvasPins);
-
+// 建立錨點DOM元件
+function makePinNode(autoFocus) {
     // =================== start ===================
     //  錨點功能相關區塊
     // ===================  end  ===================
@@ -221,13 +250,21 @@ function addPin(editor, e) {
     pinBtn.appendChild(pinIcon)
 
     // 功能按鈕區
-    //> 修改按鈕
-    const pinEditorBtn = document.createElement('button')
-    pinEditorBtn.classList.add('btn', 'btn-editor')
-    pinEditorBtn.setAttribute('type', 'button')
-    const editorIcon = document.createElement('i')
-    editorIcon.classList.add('icon', 'icon-cog')
-    pinEditorBtn.appendChild(editorIcon)
+    //> 功能外框
+    const editorBox = document.createElement('div')
+    editorBox.classList.add('editor-box')
+
+    if(!autoFocus) {
+        //> 修改按鈕
+        const pinEditorBtn = document.createElement('button')
+        pinEditorBtn.classList.add('btn', 'btn-editor')
+        pinEditorBtn.setAttribute('type', 'button')
+        const editorIcon = document.createElement('i')
+        editorIcon.classList.add('icon', 'icon-cog')
+        pinEditorBtn.appendChild(editorIcon)
+        editorBox.appendChild(pinEditorBtn)
+    }
+
     //> 刪除按鈕
     const pinDeleteBtn = document.createElement('button')
     pinDeleteBtn.classList.add('btn', 'btn-delete')
@@ -235,32 +272,91 @@ function addPin(editor, e) {
     const deleteIcon = document.createElement('i')
     deleteIcon.classList.add('icon', 'icon-trash')
     pinDeleteBtn.appendChild(deleteIcon)
-    //> 功能外框
-    const editorBox = document.createElement('div')
-    editorBox.classList.add('editor-box')
-    editorBox.appendChild(pinEditorBtn)
     editorBox.appendChild(pinDeleteBtn)
 
     // input區塊
     const keyinBox = document.createElement('input')
     keyinBox.classList.add('pin-product')
     keyinBox.setAttribute('type', 'text')
+    keyinBox.setAttribute('readonly', true)
+    if(autoFocus) {
+        keyinBox.value = autoFocus
+    }
 
     // 外包區塊
     const pinBox = document.createElement('div')
     pinBox.classList.add('pin-target')
-    pinBox.id = `prodictPin_${pinID}`
+    if(autoFocus) {
+        pinBox.classList.add('on-autofocus')
+    }
     pinBox.appendChild(pinBtn)
     pinBox.appendChild(editorBox)
     pinBox.appendChild(keyinBox)
 
-    editor.appendChild(pinBox)
-    $(`#prodictPin_${pinID}`).css({
-        top: `${topRatio}%`,
-        left: `${leftRatio}%`,
-    })
-    if(leftRatio > 50) {
-        pinBox.classList.add('theme-right')
+    return pinBox
+}
+
+// 繪製新錨點
+function drawNewPin(obj, parent) {
+    const {id, pinLeft, pinTop, prodID} = obj
+    if(prodID) {
+        const pinBox = makePinNode(prodID)
+        pinBox.id = `prodictPin_${id}`
+        parent.appendChild(pinBox)
+        $(`#prodictPin_${id}`).css({
+            top: `${pinTop}%`,
+            left: `${pinLeft}%`,
+        })
+        if(pinLeft > 50) {
+            pinBox.classList.add('theme-right')
+        }
+    }
+}
+
+// 建立新錨點
+function addPin(editor, e) {
+    pinID += 1
+    const editorOffset = $(editor).offset()
+    const topRatio = (e.clientY - editorOffset.top + $(window).scrollTop()) / editor.offsetHeight * 100
+    const leftRatio = (e.clientX - editorOffset.left + $(window).scrollLeft()) / editor.offsetWidth * 100
+    const pinInfoObj = {
+        id: pinID,
+        itemsID: null,
+        pinLeft: leftRatio,
+        pinTop: topRatio,
+    }
+
+    canvasPins.push(pinInfoObj)
+    drawNewPin(pinInfoObj, editor)
+}
+
+// 清空PIN畫板
+function clearEditor(target) {
+    while (target.firstChild) {
+        target.removeChild(target.firstChild);
+    }
+}
+
+// 繪製PIN畫板
+function renderEditor(target, ary) {
+    if(ary.length) {
+        ary.forEach((item) => {
+            drawNewPin(item, target)
+        })
+    }
+}
+
+// 刪除PIN
+function deletePin(itemID, pinID) {
+    let sliceIndex
+    if(itemID) {
+        sliceIndex = canvasPins.findIndex(item => item.itemsID === Number(itemID))
+    } else {
+        sliceIndex = canvasPins.findIndex(item => item.id === Number(pinID))
+    }
+
+    if(sliceIndex !== -1) {
+        canvasPins.splice(sliceIndex, 1)
     }
 }
 
@@ -285,27 +381,79 @@ function addPin(editor, e) {
             editorSwitch = 'pinEditor'
             $switchTarget.addClass('type-pin').removeClass('type-canvas')
             clearFocus()
+            renderEditor(editor, canvasPins)
         } else if(editorSwitch === 'pinEditor') {
             editorSwitch = 'canvasEditor'
             $switchTarget.removeClass('type-pin').addClass('type-canvas')
+            clearEditor(editor)
         }
     })
+})($, jQuery, window ,document)
+
+// 資料載入
+;(function($, jQuery, window ,document) {
+    const itemButton = document.querySelectorAll('.element-group .link')
+
+    itemButton.forEach(function(item) {
+        item.addEventListener('click', function(e) {
+            e.preventDefault()
+
+            const searchId = item.getAttribute('href')
+            jQuery.ajax({
+                type: 'POST',
+                url: 'https://next.json-generator.com/api/json/get/NkJvakK8q',
+                async: true,
+                data: {
+                    prodID: searchId,
+                },
+                dataType: 'json',
+            }).done((res) => {
+                const resAry = res
+                const targetObj = resAry.find(item => item.id === searchId)
+                if(!!targetObj) {
+                    addNewPictureItem(targetObj)
+                }
+            }).fail((x, y, z) => {
+                console.log(x, y, z);
+            })
+        })
+    })
+
+    $('#searchProducts').on('submit', function(e) {
+        e.preventDefault()
+        const resultAry = $(this).serializeArray()
+        const resultObj = resultAry.reduce((prev, item) => {
+            const {name, value} = item
+            prev[name] = value.trim()
+            return prev
+        }, {})
+        $(this).trigger('reset')
+
+        jQuery.ajax({
+            type: 'POST',
+            url: 'https://next.json-generator.com/api/json/get/NkJvakK8q',
+            async: true,
+            data: {
+                prodID: resultObj.searchById,
+            },
+            dataType: 'json',
+        }).done((res) => {
+            const resAry = res
+            const targetObj = resAry.find(item => item.id === 'ajax')
+            if(!!targetObj) {
+                addNewPictureItem(targetObj)
+            }
+        }).fail((x, y, z) => {
+            console.log(x, y, z);
+        })
+    })
+
 })($, jQuery, window ,document)
 
 // canvas 畫板相關功能
 ;(function($, jQuery, window ,document) {
     itemsID = arrayIdCheck(imgItems)
     let lastX, lastY
-    const docTitle = document.title
-    const itemButton = document.querySelectorAll('.element-group .link')
-
-    itemButton.forEach(function(item) {
-        item.addEventListener('click', function(e) {
-            e.preventDefault()
-            addNewPictureItem(item)
-            console.log(imgItems);
-        })
-    })
 
     canvas.addEventListener('mousedown', function(e){
         e.preventDefault()
@@ -367,14 +515,13 @@ function addPin(editor, e) {
                 ele.hoverOn = false
             }
         }
-        imgItems.forEach(function(item) {
-            const itemArc = degToArc(item.eleRotate)
-            if(item.checkOn) {
-                item.originX = XaxisMove (item.originX, offsetX, itemArc)
-                item.originY = YaxisMove (item.originY, offsetY, itemArc)
-            }
-        })
 
+        const targetItem = imgItems.find(item => item.checkOn)
+        if(!!targetItem) {
+            const itemArc = degToArc(targetItem.eleRotate)
+            targetItem.originX = XaxisMove (targetItem.originX, offsetX, itemArc)
+            targetItem.originY = YaxisMove (targetItem.originY, offsetY, itemArc)
+        }
         drawItems(imgItems)
     })
 
@@ -395,216 +542,15 @@ function addPin(editor, e) {
 
     canvas.addEventListener('mouseleave', function(e) {
         e.preventDefault()
-
-        imgItems.forEach(function(item) {
-            if(item.hoverOn) {
-                item.hoverOn = false
-            }
-            if(item.checkOn) {
-                item.checkOn = false
-            }
-        })
-        drawItems(imgItems)
-    })
-
-
-
-
-
-
-    // =================== start ===================
-    //  ajax 載入圖片
-    // ===================  end  ===================
-    $('#searchProducts').on('submit', function(e) {
-        e.preventDefault()
-        const resultAry = $(this).serializeArray()
-        const resultObj = resultAry.reduce((prev, item) => {
-            const {name, value} = item
-            prev[name] = value.trim()
-            return prev
-        }, {})
-        $(this).trigger('reset')
-
-        jQuery.ajax({
-            type: 'POST',
-            url: 'https://next.json-generator.com/api/json/get/NkJvakK8q',
-            async: true,
-            data: {
-                prodID: resultObj.searchById,
-            },
-            dataType: 'json',
-        }).done((res) => {
-            addNewPictureItem(res)
-        }).fail((x, y, z) => {
-            console.log(x, y, z);
-        })
-    })
-
-
-
-
-    // =================== start ===================
-    //  按鈕功能組
-    // ===================  end  ===================
-    // 清除物件選取
-    document.getElementById('clearFocus').addEventListener('click', function(e) {
-        e.preventDefault()
-        clearFocus()
-    })
-
-    // 圖片下載
-    document.getElementById('imgDownload').addEventListener('click', function(e) {
-        clearFocus()
-        const downloadImg = canvas.toDataURL('image/jpeg', .75)
-        this.download = docTitle + '_' + Date.now() + '.jpg'
-        this.href = downloadImg
-    })
-
-    // 清理畫板
-    document.getElementById('clearBoard').addEventListener('click', function(e) {
-        e.preventDefault()
-        imgItems.length = 0
-        drawItems(imgItems)
-    })
-
-    // 刪除選取元件
-    document.getElementById('deleteItem').addEventListener('click', function(e) {
-        e.preventDefault()
-        imgItems.forEach(function(item) {
-            if(item.focusOn) {
-                const targetIndex = imgItems.indexOf(item)
-                imgItems.splice(targetIndex, 1)
-            }
-        })
-        drawItems(imgItems)
-    })
-
-    // 往前一層
-    document.getElementById('goForwardLayer').addEventListener('click', function(e) {
-        e.preventDefault()
-        let targetIndex, targetObj
-        imgItems.forEach(function(item) {
-            if(item.focusOn) {
-                // 尋找目標物件
-                targetIndex = imgItems.indexOf(item)
-                // 取下目標物件
-                targetObj = imgItems.splice(targetIndex, 1)
-            }
-        })
-        // 往後推一格插回原陣列(陣列越後，圖層越上方)
-        if(targetIndex || targetIndex === 0) {
-            const insertIndex = (targetIndex + 1 < imgItems.length)? targetIndex + 1: imgItems.length
-            imgItems.splice(insertIndex, 0, ...targetObj)
-            drawItems(imgItems)
+        const hoverTarget = imgItems.find(item => item.hoverOn)
+        if(!!hoverTarget) {
+            hoverTarget.hoverOn = false
         }
-    })
-
-    // 往後一層
-    document.getElementById('goBackwardLayer').addEventListener('click', function(e) {
-        e.preventDefault()
-        let targetIndex, targetObj
-        imgItems.forEach(function(item) {
-            if(item.focusOn) {
-                // 尋找目標物件
-                targetIndex = imgItems.indexOf(item)
-                // 取下目標物件
-                targetObj = imgItems.splice(targetIndex, 1)
-            }
-        })
-        // 往前推一格插回原陣列(陣列越前，圖層越下方)
-        if(targetIndex || targetIndex === 0) {
-            const insertIndex = (targetIndex - 1 > 0)? targetIndex - 1: 0
-            imgItems.splice(insertIndex, 0, ...targetObj)
-            drawItems(imgItems)
+        const checkTarget = imgItems.find(item => item.checkOn)
+        if(!!checkTarget) {
+            checkTarget.checkOn = false
         }
-    })
 
-    // 移至最前
-    document.getElementById('goFrontLayer').addEventListener('click', function(e) {
-        e.preventDefault()
-        let targetIndex, targetObj
-        imgItems.forEach(function(item) {
-            if(item.focusOn) {
-                // 尋找目標物件
-                targetIndex = imgItems.indexOf(item)
-                // 取下目標物件
-                targetObj = imgItems.splice(targetIndex, 1)
-            }
-        })
-        // 插回原陣列最後面
-        if(targetIndex || targetIndex === 0) {
-            imgItems.push(...targetObj)
-            drawItems(imgItems)
-        }
-    })
-
-    // 移至最後
-    document.getElementById('goBackLayer').addEventListener('click', function(e) {
-        e.preventDefault()
-        let targetIndex, targetObj
-        imgItems.forEach(function(item) {
-            if(item.focusOn) {
-                // 尋找目標物件
-                targetIndex = imgItems.indexOf(item)
-                // 取下目標物件
-                targetObj = imgItems.splice(targetIndex, 1)
-            }
-        })
-        // 插回原陣列最前面
-        if(targetIndex || targetIndex === 0) {
-            imgItems.unshift(...targetObj)
-            drawItems(imgItems)
-        }
-    })
-
-    // 放大
-    document.getElementById('zoomIn').addEventListener('click', function(e) {
-        e.preventDefault()
-        imgItems.forEach(function(item) {
-            if(item.focusOn) {
-                const zoomInHeight = item.eleHeight + item.originHeight / 10
-                const zoomInWidth = item.eleWidth + item.originWidth / 10
-                item.eleHeight = zoomInHeight
-                item.eleWidth = zoomInWidth
-            }
-        })
-        drawItems(imgItems)
-    })
-
-    // 縮小
-    document.getElementById('zoomOut').addEventListener('click', function(e) {
-        e.preventDefault()
-        imgItems.forEach(function(item) {
-            if(item.focusOn) {
-                const zoomOutHeight = item.eleHeight - item.originHeight / 10
-                const zoomOutWidth = item.eleWidth - item.originWidth / 10
-                item.eleHeight = (zoomOutHeight > 0)? zoomOutHeight: 0
-                item.eleWidth = (zoomOutWidth > 0)? zoomOutWidth: 0
-            }
-        })
-        drawItems(imgItems)
-    })
-
-    // 順時針旋轉
-    document.getElementById('clockWise').addEventListener('click', function(e) {
-        e.preventDefault()
-        imgItems.forEach(function(item) {
-            if(item.focusOn) {
-                item.eleRotate = (item.eleRotate + 15) % 360
-            }
-        })
-        drawItems(imgItems)
-    })
-
-    // 逆時針旋轉
-    document.getElementById('antiClockWise').addEventListener('click', function(e) {
-        e.preventDefault()
-        imgItems.forEach(function(item) {
-
-            if(item.focusOn) {
-                item.eleRotate = (item.eleRotate - 15) % 360
-            }
-        })
         drawItems(imgItems)
     })
 })($, jQuery, window ,document)
@@ -612,9 +558,9 @@ function addPin(editor, e) {
 // 錨點功能
 ;(function($, jQuery, window ,document) {
     pinID = arrayIdCheck(canvasPins)
-    const editor = document.getElementById('pinEditor')
     const cursorBox = document.createElement('div')
     cursorBox.classList.add('pin-cursor')
+
 
     editor.addEventListener('mouseenter', function(e) {
         e.preventDefault()
@@ -661,7 +607,6 @@ function addPin(editor, e) {
     $(editor).on('mousedown', '.btn-pin', function(e) {
         e.preventDefault()
         pinOnClick = true
-        // console.log('start:' + e.timeStamp)
         nowTimeStamp = e.timeStamp
     })
 
@@ -673,7 +618,6 @@ function addPin(editor, e) {
         if(timeDuration < 200 && $(e.target).hasClass('icon-pin')){
             $(e.target).parents('.btn-pin').siblings('.editor-box').fadeToggle(250)
         }
-        // console.log(timeDuration);
     })
 
     $(editor).on('mousemove', '.btn-pin', function(e) {
@@ -682,7 +626,7 @@ function addPin(editor, e) {
         const topRatio = (e.clientY + $(this).height() / 2 - editorOffset.top + $(window).scrollTop()) / editor.offsetHeight * 100
         const leftRatio = (e.clientX - $(this).width() * 0  - editorOffset.left + $(window).scrollLeft()) / editor.offsetWidth * 100
 
-        if(pinOnClick) {
+        if(pinOnClick && !$(this).parents('.pin-target').hasClass('on-autofocus')) {
             $(this).parents('.pin-target').css({
                 top: `${topRatio}%`,
                 left: `${leftRatio}%`,
@@ -721,7 +665,125 @@ function addPin(editor, e) {
     // 刪除PIN
     $(editor).on('click', '.editor-box .btn-delete', function(e) {
         e.preventDefault()
-        $(this).parents('.pin-target').remove()
+        const $target = $(this).parents('.pin-target')
+        const targetPinId = $target.attr('id').split('_')[1]
+        deletePin(null, targetPinId)
+        $target.remove()
+    })
+})($, jQuery, window ,document)
+
+// 按鈕功能組
+;(function($, jQuery, window ,document) {
+    // 清除物件選取
+    document.getElementById('clearFocus').addEventListener('click', function(e) {
+        e.preventDefault()
+        clearFocus()
+    })
+
+    // 圖片下載
+    document.getElementById('imgDownload').addEventListener('click', function(e) {
+        clearFocus()
+        const downloadImg = canvas.toDataURL('image/jpeg', .75)
+        this.download = docTitle + '_' + Date.now() + '.jpg'
+        this.href = downloadImg
+    })
+
+    // 清理畫板
+    document.getElementById('clearBoard').addEventListener('click', function(e) {
+        e.preventDefault()
+        imgItems.forEach((item) => {
+            deletePin(item.id, null)
+        })
+        imgItems.length = 0
+        drawItems(imgItems)
+    })
+
+    // 刪除選取元件
+    document.getElementById('deleteItem').addEventListener('click', function(e) {
+        e.preventDefault()
+        const targetIndex = imgItems.findIndex(item => item.focusOn)
+        if(targetIndex !== -1) {
+            deletePin(imgItems[targetIndex].id, null)
+            imgItems.splice(targetIndex, 1)
+            drawItems(imgItems)
+        }
+    })
+
+    // 往前一層
+    document.getElementById('goForwardLayer').addEventListener('click', function(e) {
+        e.preventDefault()
+        changeLayerOrder(imgItems, 'goForward')
+    })
+
+    // 往後一層
+    document.getElementById('goBackwardLayer').addEventListener('click', function(e) {
+        e.preventDefault()
+        changeLayerOrder(imgItems, 'goBackward')
+    })
+
+    // 移至最前
+    document.getElementById('goFrontLayer').addEventListener('click', function(e) {
+        e.preventDefault()
+        changeLayerOrder(imgItems, 'goFront')
+    })
+
+    // 移至最後
+    document.getElementById('goBackLayer').addEventListener('click', function(e) {
+        e.preventDefault()
+        changeLayerOrder(imgItems, 'goBack')
+    })
+
+    // 放大
+    document.getElementById('zoomIn').addEventListener('click', function(e) {
+        e.preventDefault()
+        const targetItem = imgItems.find(item => item.focusOn)
+        if(!!targetItem) {
+            const zoomInHeight = targetItem.eleHeight + targetItem.originHeight / 10
+            const zoomInWidth = targetItem.eleWidth + targetItem.originWidth / 10
+            targetItem.eleHeight = zoomInHeight
+            targetItem.eleWidth = zoomInWidth
+            drawItems(imgItems)
+        }
+    })
+
+    // 縮小
+    document.getElementById('zoomOut').addEventListener('click', function(e) {
+        e.preventDefault()
+        const targetItem = imgItems.find(item => item.focusOn)
+        if(!!targetItem) {
+            const zoomOutHeight = targetItem.eleHeight - targetItem.originHeight / 10
+            const zoomOutWidth = targetItem.eleWidth - targetItem.originWidth / 10
+            targetItem.eleHeight = (zoomOutHeight > 0)? zoomOutHeight: 0
+            targetItem.eleWidth = (zoomOutWidth > 0)? zoomOutWidth: 0
+            drawItems(imgItems)
+        }
+    })
+
+    // 順時針旋轉
+    document.getElementById('clockWise').addEventListener('click', function(e) {
+        e.preventDefault()
+        const targetItem = imgItems.find(item => item.focusOn)
+        if(!!targetItem) {
+            targetItem.eleRotate = (targetItem.eleRotate + 15) % 360
+            drawItems(imgItems)
+        }
+    })
+
+    // 逆時針旋轉
+    document.getElementById('antiClockWise').addEventListener('click', function(e) {
+        e.preventDefault()
+        const targetItem = imgItems.find(item => item.focusOn)
+        if(!!targetItem) {
+            targetItem.eleRotate = (targetItem.eleRotate - 15) % 360
+            drawItems(imgItems)
+        }
+    })
+
+    // 清除所有錨點
+    document.getElementById('clearPin').addEventListener('click', function(e) {
+        e.preventDefault()
+        canvasPins.length = 0
+        clearEditor(editor)
     })
 })($, jQuery, window ,document)
 

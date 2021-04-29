@@ -68,7 +68,7 @@ html(lang="zh-Hant-TW")
                             else
                                 - var imgName = (i + 1);
                             li.item
-                                a.link(href=mediaPath + "original/" + imgName + ".png")
+                                a.link(href="A" + (i + 1))
                                     img(src=mediaPath + "thumbnail/" + imgName + ".png", alt="")
                     h2.element-title 背景圖
                     ul.element-group
@@ -78,7 +78,7 @@ html(lang="zh-Hant-TW")
                             else
                                 - var imgName = (i + 1);
                             li.item
-                                a.link(href=mediaPath + "original/bg_" + imgName + ".jpg")
+                                a.link(href="B" + (i + 1))
                                     img(src=mediaPath + "thumbnail/bg_" + imgName + ".jpg", alt="")
                     h2.element-title 商品圖
                     ul.element-group
@@ -88,7 +88,7 @@ html(lang="zh-Hant-TW")
                             else
                                 - var imgName = (i + 1);
                             li.item
-                                a.link(href=mediaPath + "original/prod_" + imgName + ".png")
+                                a.link(href="C" + (i + 1))
                                     img(src=mediaPath + "thumbnail/prod_" + imgName + ".png", alt="")
                     h2.element-title 商品搜尋
                     form.search-form#searchProducts

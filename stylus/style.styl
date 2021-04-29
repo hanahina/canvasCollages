@@ -74,17 +74,22 @@ body
     .btn-pin
         bottom 0
         cursor pointer
-        position absolute
         left 50%
+        padding 5px 5px 0
+        position absolute
         transform: translateX(-50%)
         .icon
-            background transparent url(mediaPath+"/icons/color_pin.svg") center center no-repeat
+            background transparent url(mediaPath+"/icons/focus_pin.svg") center center no-repeat
             background-size contain
             display block
             height 35px
             -webkit-mask $mk = none
             mask $mk
             width @height
+    .on-autofocus
+        .btn-pin
+            .icon
+                background-image url(mediaPath+"/icons/auto_pin.svg")
     .pin-product
         background rgba(#fff, .5)
         border none
@@ -103,6 +108,7 @@ body
             cursor none
             opacity .5
             padding 0 5px
+            user-select: none
     .theme-right
         .pin-product
             left auto
