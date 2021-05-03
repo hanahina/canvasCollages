@@ -161,6 +161,16 @@ function drawItems(array) {
         ctx.rotate(degToArc(eleRotate))
         ctx.drawImage(target, startX, startY, eleWidth, eleHeight)
 
+        // 繪製圖片中心
+        ctx.fillStyle = '#f00'
+        ctx.strokeStyle = '#fff'
+        ctx.lineWidth = 10
+        ctx.setLineDash([])
+        ctx.beginPath();
+        ctx.arc(0, 0, 20, 0, 2 * Math.PI);
+        ctx.fill();
+        ctx.stroke();
+
         if(hoverOn && !itemOnChecked) {
             ctx.lineWidth = lineWidth
             ctx.strokeStyle = '#23f3fa';
@@ -521,6 +531,12 @@ function deletePin(itemID, pinID) {
             const itemArc = degToArc(targetItem.eleRotate)
             targetItem.originX = XaxisMove (targetItem.originX, offsetX, itemArc)
             targetItem.originY = YaxisMove (targetItem.originY, offsetY, itemArc)
+
+            const targetPinIndex = canvasPins.find(pin => pin.itemsID === targetItem.id)
+            if(!!targetPinIndex) {
+                targetPinIndex.pinTop = (targetItem.originY + targetItem.eleHeight / 2) / canvasInfo.height * 100
+                targetPinIndex.pinLeft = (targetItem.originX + targetItem.eleWidth / 2)  / canvasInfo.width * 100
+            }
         }
         drawItems(imgItems)
     })
@@ -743,6 +759,14 @@ function deletePin(itemID, pinID) {
             targetItem.eleHeight = zoomInHeight
             targetItem.eleWidth = zoomInWidth
             drawItems(imgItems)
+
+            const targetPin = canvasPins.find(item => item.itemsID === targetItem.id)
+            if(!!targetPin) {
+                const leftRatio = (targetItem.originX + zoomInWidth / 2) / canvasInfo.width * 100
+                const topRatio = (targetItem.originY + zoomInHeight / 2) / canvasInfo.height * 100
+                targetPin.pinLeft = leftRatio
+                targetPin.pinTop = topRatio
+            }
         }
     })
 
@@ -756,6 +780,14 @@ function deletePin(itemID, pinID) {
             targetItem.eleHeight = (zoomOutHeight > 0)? zoomOutHeight: 0
             targetItem.eleWidth = (zoomOutWidth > 0)? zoomOutWidth: 0
             drawItems(imgItems)
+
+            const targetPin = canvasPins.find(item => item.itemsID === targetItem.id)
+            if(!!targetPin) {
+                const leftRatio = (targetItem.originX + zoomOutWidth / 2) / canvasInfo.width * 100
+                const topRatio = (targetItem.originY + zoomOutHeight / 2) / canvasInfo.height * 100
+                targetPin.pinLeft = leftRatio
+                targetPin.pinTop = topRatio
+            }
         }
     })
 
