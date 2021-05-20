@@ -1,3 +1,4 @@
+let startEvent, moveEvent, endEvent, userAgentType
 let editorSwitch = 'canvasEditor'
 let itemsID = 0
 let pinID = 0
@@ -161,15 +162,15 @@ function drawItems(array) {
         ctx.rotate(degToArc(eleRotate))
         ctx.drawImage(target, startX, startY, eleWidth, eleHeight)
 
-        // 繪製圖片中心
-        ctx.fillStyle = '#f00'
-        ctx.strokeStyle = '#fff'
-        ctx.lineWidth = 10
-        ctx.setLineDash([])
-        ctx.beginPath();
-        ctx.arc(0, 0, 20, 0, 2 * Math.PI);
-        ctx.fill();
-        ctx.stroke();
+        // // 繪製圖片中心
+        // ctx.fillStyle = '#f00'
+        // ctx.strokeStyle = '#fff'
+        // ctx.lineWidth = 10
+        // ctx.setLineDash([])
+        // ctx.beginPath();
+        // ctx.arc(0, 0, 20, 0, 2 * Math.PI);
+        // ctx.fill();
+        // ctx.stroke();
 
         if(hoverOn && !itemOnChecked) {
             ctx.lineWidth = lineWidth
@@ -209,6 +210,47 @@ function clearFocus() {
     }
 }
 
+// ajax元件資料載入
+function getAjaxInfo(type, target) {
+    let postID, checkID
+    if(editorSwitch === 'pinEditor') {
+        return false
+    }
+    if(type === 'click') {
+        postID = checkID = target.getAttribute('href')
+    } else if(type === 'submit') {
+        const resultAry = $(target).serializeArray()
+        const resultObj = resultAry.reduce((prev, item) => {
+            const {name, value} = item
+            prev[name] = value.trim()
+            return prev
+        }, {})
+        postID = resultObj.searchById
+        checkID = 'ajax'
+        $(target).trigger('reset')
+    } else {
+        return false
+    }
+
+    jQuery.ajax({
+        type: 'POST',
+        url: 'https://next.json-generator.com/api/json/get/NkJvakK8q',
+        async: true,
+        data: {
+            prodID: postID,
+        },
+        dataType: 'json',
+    }).done((res) => {
+        const resAry = res
+        const targetObj = resAry.find(item => item.id === checkID)
+        if(!!targetObj) {
+            addNewPictureItem(targetObj)
+        }
+    }).fail((x, y, z) => {
+        console.log(x, y, z);
+    })
+}
+
 // 建立新元件資料
 function addNewPictureItem(item) {
     const itemImg = new Image()
@@ -231,26 +273,29 @@ function addNewPictureItem(item) {
             checkOn: false,
             eleRotate: 0,
         }
-        const leftRatio = (pushObj.originX + pushObj.eleWidth / 2) / canvasInfo.width * 100
-        const topRatio = (pushObj.originY + pushObj.eleHeight / 2) / canvasInfo.height * 100
-        const pinInfoObj = {
-            id: pinID,
-            itemsID,
-            prodID: item.prodID,
-            pinLeft: leftRatio,
-            pinTop: topRatio,
-        }
         imgItems.push(pushObj)
-        canvasPins.push(pinInfoObj)
         drawItems(imgItems)
+
+        // 建立與商品圖連動的錨點
+        if(!!item.prodID) {
+            const leftRatio = (pushObj.originX + pushObj.eleWidth / 2) / canvasInfo.width * 100
+            const topRatio = (pushObj.originY + pushObj.eleHeight / 2) / canvasInfo.height * 100
+            const pinInfoObj = {
+                id: pinID,
+                itemsID,
+                prodID: item.prodID,
+                pinLeft: leftRatio,
+                pinTop: topRatio,
+            }
+            canvasPins.push(pinInfoObj)
+        }
     }
 }
 
 // 建立錨點DOM元件
-function makePinNode(autoFocus) {
-    // =================== start ===================
-    //  錨點功能相關區塊
-    // ===================  end  ===================
+function makePinNode(obj) {
+    const {prodID, itemsID} = obj
+
     // pin button
     const pinBtn = document.createElement('button')
     pinBtn.classList.add('btn', 'btn-pin')
@@ -264,7 +309,7 @@ function makePinNode(autoFocus) {
     const editorBox = document.createElement('div')
     editorBox.classList.add('editor-box')
 
-    if(!autoFocus) {
+    if(!itemsID) {
         //> 修改按鈕
         const pinEditorBtn = document.createElement('button')
         pinEditorBtn.classList.add('btn', 'btn-editor')
@@ -289,14 +334,14 @@ function makePinNode(autoFocus) {
     keyinBox.classList.add('pin-product')
     keyinBox.setAttribute('type', 'text')
     keyinBox.setAttribute('readonly', true)
-    if(autoFocus) {
-        keyinBox.value = autoFocus
+    if(prodID) {
+        keyinBox.value = prodID
     }
 
     // 外包區塊
     const pinBox = document.createElement('div')
     pinBox.classList.add('pin-target')
-    if(autoFocus) {
+    if(itemsID) {
         pinBox.classList.add('on-autofocus')
     }
     pinBox.appendChild(pinBtn)
@@ -308,18 +353,16 @@ function makePinNode(autoFocus) {
 
 // 繪製新錨點
 function drawNewPin(obj, parent) {
-    const {id, pinLeft, pinTop, prodID} = obj
-    if(prodID) {
-        const pinBox = makePinNode(prodID)
-        pinBox.id = `prodictPin_${id}`
-        parent.appendChild(pinBox)
-        $(`#prodictPin_${id}`).css({
-            top: `${pinTop}%`,
-            left: `${pinLeft}%`,
-        })
-        if(pinLeft > 50) {
-            pinBox.classList.add('theme-right')
-        }
+    const {id, pinLeft, pinTop, } = obj
+    const pinBox = makePinNode(obj)
+    pinBox.id = `prodictPin_${id}`
+    parent.appendChild(pinBox)
+    $(`#prodictPin_${id}`).css({
+        top: `${pinTop}%`,
+        left: `${pinLeft}%`,
+    })
+    if(pinLeft > 50) {
+        pinBox.classList.add('theme-right')
     }
 }
 
@@ -327,8 +370,17 @@ function drawNewPin(obj, parent) {
 function addPin(editor, e) {
     pinID += 1
     const editorOffset = $(editor).offset()
-    const topRatio = (e.clientY - editorOffset.top + $(window).scrollTop()) / editor.offsetHeight * 100
-    const leftRatio = (e.clientX - editorOffset.left + $(window).scrollLeft()) / editor.offsetWidth * 100
+    let targetEvent
+    if(userAgentType === 'touch') {
+        targetEvent = e.originalEvent.changedTouches[0]
+    } else if(userAgentType === 'desktop') {
+        targetEvent = e
+    } else {
+        return false
+    }
+
+    const topRatio = (targetEvent.clientY - editorOffset.top + $(window).scrollTop()) / editor.offsetHeight * 100
+    const leftRatio = (targetEvent.clientX - editorOffset.left + $(window).scrollLeft()) / editor.offsetWidth * 100
     const pinInfoObj = {
         id: pinID,
         itemsID: null,
@@ -370,6 +422,23 @@ function deletePin(itemID, pinID) {
     }
 }
 
+// 使用者裝置確認
+;(function($, jQuery, window ,document, navigator) {
+    const userAgent = navigator.userAgent
+    const regexp = /Android|iPhone|SymbianOS|Windows Phone|iPad|iPod|Touch|Mobile|Tablet|BlackBerry/gi
+    if(!!userAgent.match(regexp)) {
+        startEvent = 'touchstart'
+        moveEvent = 'touchmove'
+        endEvent = 'touchend'
+        userAgentType = 'touch'
+    } else {
+        startEvent = 'mousedown'
+        moveEvent = 'mousemove'
+        endEvent = 'mouseup'
+        userAgentType = 'desktop'
+    }
+})($, jQuery, window ,document, navigator)
+
 // 視窗尺寸變化
 ;(function($, jQuery, window ,document) {
     window.addEventListener('resize', function(e) {
@@ -392,10 +461,12 @@ function deletePin(itemID, pinID) {
             $switchTarget.addClass('type-pin').removeClass('type-canvas')
             clearFocus()
             renderEditor(editor, canvasPins)
+            console.log(canvasPins);
         } else if(editorSwitch === 'pinEditor') {
             editorSwitch = 'canvasEditor'
             $switchTarget.removeClass('type-pin').addClass('type-canvas')
             clearEditor(editor)
+            console.log(imgItems);
         }
     })
 })($, jQuery, window ,document)
@@ -407,55 +478,13 @@ function deletePin(itemID, pinID) {
     itemButton.forEach(function(item) {
         item.addEventListener('click', function(e) {
             e.preventDefault()
-
-            const searchId = item.getAttribute('href')
-            jQuery.ajax({
-                type: 'POST',
-                url: 'https://next.json-generator.com/api/json/get/NkJvakK8q',
-                async: true,
-                data: {
-                    prodID: searchId,
-                },
-                dataType: 'json',
-            }).done((res) => {
-                const resAry = res
-                const targetObj = resAry.find(item => item.id === searchId)
-                if(!!targetObj) {
-                    addNewPictureItem(targetObj)
-                }
-            }).fail((x, y, z) => {
-                console.log(x, y, z);
-            })
+            getAjaxInfo('click', item)
         })
     })
 
     $('#searchProducts').on('submit', function(e) {
         e.preventDefault()
-        const resultAry = $(this).serializeArray()
-        const resultObj = resultAry.reduce((prev, item) => {
-            const {name, value} = item
-            prev[name] = value.trim()
-            return prev
-        }, {})
-        $(this).trigger('reset')
-
-        jQuery.ajax({
-            type: 'POST',
-            url: 'https://next.json-generator.com/api/json/get/NkJvakK8q',
-            async: true,
-            data: {
-                prodID: resultObj.searchById,
-            },
-            dataType: 'json',
-        }).done((res) => {
-            const resAry = res
-            const targetObj = resAry.find(item => item.id === 'ajax')
-            if(!!targetObj) {
-                addNewPictureItem(targetObj)
-            }
-        }).fail((x, y, z) => {
-            console.log(x, y, z);
-        })
+        getAjaxInfo('submit', this)
     })
 
 })($, jQuery, window ,document)
@@ -464,18 +493,26 @@ function deletePin(itemID, pinID) {
 ;(function($, jQuery, window ,document) {
     itemsID = arrayIdCheck(imgItems)
     let lastX, lastY
-
-    canvas.addEventListener('mousedown', function(e){
+    canvas.addEventListener(startEvent, function(e) {
         e.preventDefault()
-        canvas.style.cursor = 'move'
 
-        const naturalX = getNaturalSize(e.offsetX, canvasInfo.ratioX)
-        const naturalY = getNaturalSize(e.offsetY, canvasInfo.ratioY)
+        let naturalX, naturalY
+        if(userAgentType === 'touch') {
+            const touchInfo = e.touches[0]
+            const canvasOffset = $(canvas).offset()
+            naturalX = getNaturalSize(touchInfo.clientX - canvasOffset.left, canvasInfo.ratioX)
+            naturalY = getNaturalSize(touchInfo.clientY - canvasOffset.top, canvasInfo.ratioY)
+        } else if(userAgentType === 'desktop') {
+            naturalX = getNaturalSize(e.offsetX, canvasInfo.ratioX)
+            naturalY = getNaturalSize(e.offsetY, canvasInfo.ratioY)
+        } else {
+            return false
+        }
         itemOnChecked = true
         lastX = null
         lastY = null
 
-        // mouseDown check
+        // downEvent check
         for (let i = 0; i < imgItems.length; i++) {
             const ele = imgItems[i]
             if(rangeCheck(ele, naturalX, naturalY)) {
@@ -497,32 +534,42 @@ function deletePin(itemID, pinID) {
                 ele.focusOn = false
             }
         }
-
         drawItems(imgItems)
     })
 
-    canvas.addEventListener('mousemove', function(e) {
+    canvas.addEventListener(moveEvent, function(e) {
         e.preventDefault()
-
-        const naturalX = getNaturalSize(e.offsetX, canvasInfo.ratioX)
-        const naturalY = getNaturalSize(e.offsetY, canvasInfo.ratioY)
+        let naturalX, naturalY
+        if(userAgentType === 'touch') {
+            const touchInfo = e.touches[0]
+            const canvasOffset = $(canvas).offset()
+            naturalX = getNaturalSize(touchInfo.clientX - canvasOffset.left, canvasInfo.ratioX)
+            naturalY = getNaturalSize(touchInfo.clientY - canvasOffset.top, canvasInfo.ratioY)
+        } else if(userAgentType === 'desktop') {
+            naturalX = getNaturalSize(e.offsetX, canvasInfo.ratioX)
+            naturalY = getNaturalSize(e.offsetY, canvasInfo.ratioY)
+        } else {
+            return false
+        }
         const offsetX = (lastX !== null)? naturalX - lastX: 0;
         const offsetY = (lastY !== null)? naturalY - lastY: 0;
         lastX = naturalX
         lastY = naturalY
 
         // hoverOn check
-        for (let i = 0; i < imgItems.length; i++) {
-            const ele = imgItems[i]
-            if(rangeCheck(ele, naturalX, naturalY)) {
-                ele.hoverOn = true
-                for (let j = 0; j < i; j++) {
-                    if(imgItems[j].hoverOn) {
-                        imgItems[j].hoverOn = false
+        if(userAgentType === 'desktop') {
+            for (let i = 0; i < imgItems.length; i++) {
+                const ele = imgItems[i]
+                if(rangeCheck(ele, naturalX, naturalY)) {
+                    ele.hoverOn = true
+                    for (let j = 0; j < i; j++) {
+                        if(imgItems[j].hoverOn) {
+                            imgItems[j].hoverOn = false
+                        }
                     }
+                } else {
+                    ele.hoverOn = false
                 }
-            } else {
-                ele.hoverOn = false
             }
         }
 
@@ -541,7 +588,7 @@ function deletePin(itemID, pinID) {
         drawItems(imgItems)
     })
 
-    canvas.addEventListener('mouseup', function(e){
+    canvas.addEventListener(endEvent, function(e) {
         e.preventDefault()
         canvas.removeAttribute('style')
 
@@ -574,75 +621,99 @@ function deletePin(itemID, pinID) {
 // 錨點功能
 ;(function($, jQuery, window ,document) {
     pinID = arrayIdCheck(canvasPins)
-    const cursorBox = document.createElement('div')
-    cursorBox.classList.add('pin-cursor')
-
-
-    editor.addEventListener('mouseenter', function(e) {
-        e.preventDefault()
-        this.appendChild(cursorBox)
-    })
-    editor.addEventListener('mouseleave', function(e) {
-        e.preventDefault()
-        this.removeChild(cursorBox)
-    })
-    editor.addEventListener('mousemove', function(e) {
-        e.preventDefault()
-        const editorOffset = $(this).offset()
-        const topRatio = (e.clientY - editorOffset.top + $(window).scrollTop()) / editor.offsetHeight * 100
-        const leftRatio = (e.clientX - editorOffset.left + $(window).scrollLeft()) / editor.offsetWidth * 100
-
-        $(cursorBox).css({
-            top: `${topRatio}%`,
-            left: `${leftRatio}%`,
-        })
-    })
-
-    // 摸到既存的PIN時，不顯示focus圖示
-    $(editor).on('mouseenter', '.btn-pin, .editor-box, .pin-product:not([readonly])', function(e) {
-        e.preventDefault()
-        $(cursorBox).fadeOut(100)
-    })
-    $(editor).on('mouseleave', '.btn-pin, .editor-box, .pin-product:not([readonly])', function(e) {
-        e.preventDefault()
-        $(cursorBox).fadeIn(100)
-    })
-
-    // 判斷是否要添加PIN
-    $(editor).on('click', function(e) {
-        e.preventDefault()
-
-        if($(e.target).hasClass('pin-cursor') || $(e.target).attr('readonly')) {
-            addPin(this, e)
-            $(this).find('.pin-product').eq(0).trigger('focus')
-        }
-    })
     let pinOnClick = false
     let nowTimeStamp = 0
 
-    $(editor).on('mousedown', '.btn-pin', function(e) {
+    if(userAgentType === 'desktop') {
+        const cursorBox = document.createElement('div')
+        cursorBox.classList.add('pin-cursor')
+
+        editor.addEventListener('mouseenter', function(e) {
+            e.preventDefault()
+            this.appendChild(cursorBox)
+        })
+        editor.addEventListener('mouseleave', function(e) {
+            e.preventDefault()
+            this.removeChild(cursorBox)
+        })
+        editor.addEventListener('mousemove', function(e) {
+            e.preventDefault()
+            const editorOffset = $(this).offset()
+            const topRatio = (e.clientY - editorOffset.top + $(window).scrollTop()) / editor.offsetHeight * 100
+            const leftRatio = (e.clientX - editorOffset.left + $(window).scrollLeft()) / editor.offsetWidth * 100
+
+            $(cursorBox).css({
+                top: `${topRatio}%`,
+                left: `${leftRatio}%`,
+            })
+        })
+
+        // 摸到既存的PIN時，不顯示focus圖示
+        $(editor).on('mouseenter', '.btn-pin, .editor-box, .pin-product:not([readonly])', function(e) {
+            e.preventDefault()
+            $(cursorBox).fadeOut(100)
+        })
+        $(editor).on('mouseleave', '.btn-pin, .editor-box, .pin-product:not([readonly])', function(e) {
+            e.preventDefault()
+            $(cursorBox).fadeIn(100)
+        })
+    }
+
+    $(editor).on(startEvent, function(e) {
+        e.preventDefault()
+        nowTimeStamp = e.timeStamp
+    })
+
+    $(editor).on(startEvent, '.btn-pin', function(e) {
         e.preventDefault()
         pinOnClick = true
         nowTimeStamp = e.timeStamp
     })
 
-    $(editor).on('mouseup', function(e) {
+    $(editor).on(endEvent, function(e) {
         e.preventDefault()
         pinOnClick = false
         const timeDuration = e.timeStamp - nowTimeStamp
+        if($(e.target).hasClass('pin-cursor') || $(e.target).attr('readonly') || e.target === e.currentTarget) {
+            addPin(this, e)
+            const nowIndex = $(this).find('.pin-product').length - 1
+            $(this).find('.pin-product').eq(nowIndex).trigger('focus').attr('readonly', false)
+        }
 
         if(timeDuration < 200 && $(e.target).hasClass('icon-pin')){
-            $(e.target).parents('.btn-pin').siblings('.editor-box').fadeToggle(250)
+            $(e.target).parents('.btn-pin')
+                       .siblings('.editor-box').fadeToggle(250)
+                       .parents('.pin-target')
+                       .siblings('.pin-target')
+                       .find('.editor-box').fadeOut(250)
+            $(e.target).parents('.pin-target')
+                       .siblings('.pin-target')
+                       .find('.pin-product').trigger('blur')
         }
     })
 
-    $(editor).on('mousemove', '.btn-pin', function(e) {
+    $(editor).on(moveEvent, '.btn-pin', function(e) {
         e.preventDefault()
         const editorOffset = $(editor).offset()
-        const topRatio = (e.clientY + $(this).height() / 2 - editorOffset.top + $(window).scrollTop()) / editor.offsetHeight * 100
-        const leftRatio = (e.clientX - $(this).width() * 0  - editorOffset.left + $(window).scrollLeft()) / editor.offsetWidth * 100
+        let targetEvent
+        if(userAgentType === 'touch') {
+            targetEvent = e.originalEvent.changedTouches[0]
+        } else if(userAgentType === 'desktop') {
+            targetEvent = e
+        } else {
+            return false
+        }
+
+        const topRatio = (targetEvent.clientY + $(this).height() / 2 - editorOffset.top + $(window).scrollTop()) / editor.offsetHeight * 100
+        const leftRatio = (targetEvent.clientX - $(this).width() * 0  - editorOffset.left + $(window).scrollLeft()) / editor.offsetWidth * 100
 
         if(pinOnClick && !$(this).parents('.pin-target').hasClass('on-autofocus')) {
+            const targetPinInfo = $(this).parents('.pin-target').attr('id').split('_')
+            const targetPinID = targetPinInfo[1]
+            const targetPin = canvasPins.find(item => item.id === Number(targetPinID))
+            targetPin.pinLeft = leftRatio
+            targetPin.pinTop = topRatio
+
             $(this).parents('.pin-target').css({
                 top: `${topRatio}%`,
                 left: `${leftRatio}%`,
@@ -658,6 +729,10 @@ function deletePin(itemID, pinID) {
     // 暫存PIN商品編號
     $(editor).on('blur', '.pin-product', function(e) {
         e.preventDefault()
+        const pinInfo = $(this).parents('.pin-target').attr('id').split('_')
+        const pinID = pinInfo[1]
+        const targetPin = canvasPins.find(item => item.id === Number(pinID))
+        targetPin.prodID = $(this).val()
         $(this).attr('readonly', true)
     })
     $(editor).on('keypress', '.pin-product', function(e) {
@@ -818,6 +893,8 @@ function deletePin(itemID, pinID) {
         clearEditor(editor)
     })
 })($, jQuery, window ,document)
+
+
 
 // 多行文字繪製
 // (function() {
